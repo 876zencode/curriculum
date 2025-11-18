@@ -1,0 +1,137 @@
+You are building a Source-of-Truth Finder web application similar to roadmap.sh,
+but instead of community content you only list authoritative documentation
+(e.g., MDN for JavaScript, Oracle docs for Java).
+
+Generate the INITIAL HOME PAGE + SEARCH RESULTS PAGE + BACKEND API in two parts:
+1. Java Spring Boot backend (Java 21, Spring Boot 3.x)
+2. React frontend with shadcn/ui components
+
+-----------------------------------------------------------
+🟦 **GENERAL REQUIREMENTS**
+-----------------------------------------------------------
+- Use clean OOP architecture
+- Use Java 21 features (records, sealed types where appropriate)
+- Follow Spring Boot best practices:
+  • Controller → Service → Provider → DTO (no business logic in controllers)
+  • Create interfaces for services
+  • Use dependency injection
+  • Use HttpClient or WebClient for external calls
+- No database yet; use an in-memory store for “saved links"
+- Build a SourceRankingService that scores URLs based on rules
+- Use meaningful package structure:
+    com.sotfinder.api
+      ├── controller
+      ├── service
+      ├── provider
+      ├── model
+      ├── dto
+      └── config
+
+-----------------------------------------------------------
+🟥 **BACKEND REQUIREMENTS (Spring Boot)**
+-----------------------------------------------------------
+
+Create a Spring Boot project with:
+
+### 1. SourceSearchController
+GET /api/sources/search?query=java
+Returns list of:
+{
+  title: "",
+  url: "",
+  authorityScore: 0,
+  reason: ""
+}
+
+### 2. SourceSearchService (Interface)
+- searchSources(String query): List<SourceDTO>
+
+### 3. SourceSearchServiceImpl (Implementation)
+Uses:
+- SourceProvider (Google-style result provider simulation)
+- SourceRankingService (scores results)
+
+### 4. SourceProvider (Interface)
+fetchRawResults(String query): List<RawSourceResult>
+
+### 5. StaticSourceProvider (Implementation)
+Temporarily simulates results with:
+- MDN for JS
+- Oracle/OpenJDK for Java
+- ECMAScript spec for JS
+- Ecma International for spec documents
+
+### 6. SourceRankingService
+Rule-based scoring (example):
++10 if domain contains official steward (oracle.com, openjdk.org, mdn, ecma-international)
++5 if title contains “specification” or “reference”
++3 if description contains “official”
+This returns a final authorityScore + explanation
+
+### 7. Model & DTOs
+Use Java records:
+- SourceDTO
+- RawSourceResult
+- RankedSourceResult
+
+### 8. SavedLinksController
+POST /api/sources/save
+GET /api/sources/saved
+Use an in-memory ConcurrentHashMap
+
+-----------------------------------------------------------
+🟩 **FRONTEND REQUIREMENTS (React + shadcn/ui)**
+-----------------------------------------------------------
+
+Create a minimal frontend with modern React (TypeScript):
+
+### Pages:
+1. **Home/Search Page**
+- Input box (shadcn/ui Input)
+- Search button
+- When user types “Java”, call API:
+  GET /api/sources/search?query=java
+- Render Google-style list:
+  - Title (blue)
+  - URL (green)
+  - Description
+  - Authority score badge (shadcn Badge)
+  - "Save Link" button
+
+2. **Saved Sources Page**
+- Simple list of saved authoritative sources
+
+### Components:
+- SearchBar.tsx
+- SourceResultCard.tsx (use Card from shadcn)
+- SavedList.tsx
+
+### UI Spec:
+- Use shadcn/ui’s:
+  • Input
+  • Button
+  • Card
+  • Badge
+  • Separator
+- Clean spacing, rounded corners (rounded-2xl)
+- Subtle hover transitions
+
+### Extra:
+- Use React Query (TanStack) for API calls
+- Use environment variables for API base URL
+- Create a /lib/api.ts that wraps fetch calls
+
+-----------------------------------------------------------
+🟧 **OUTPUT FORMAT**
+-----------------------------------------------------------
+Provide the following in your response:
+
+**1. Spring Boot project structure** (folders + files)  
+**2. Full Java code for all backend files**  
+**3. React components (TSX) and pages**  
+**4. Instructions to run both projects**  
+**5. Example responses from the search API**
+
+-----------------------------------------------------------
+The result should be a clean, production-ready starter template
+I can paste directly into my codebase and run immediately.
