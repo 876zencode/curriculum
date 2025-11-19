@@ -1,6 +1,6 @@
 package com.sotfinder.api.controller;
 
-import com.sotfinder.api.dto.SourceDTO;
+import com.sotfinder.api.dto.RankedResourceDTO; // Changed DTO import
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Collection;
@@ -13,18 +13,18 @@ public class SavedLinksController {
 
     // Using a ConcurrentHashMap for in-memory storage of saved links
     // The key is the URL to ensure uniqueness
-    private final Map<String, SourceDTO> savedLinks = new ConcurrentHashMap<>();
+    private final Map<String, RankedResourceDTO> savedLinks = new ConcurrentHashMap<>(); // Changed Map value type
 
     @PostMapping("/saved")
-    public void save(@RequestBody SourceDTO source) {
+    public void save(@RequestBody RankedResourceDTO resource) { // Changed parameter type and name
         // In a real application, you might want to add validation
         // and more robust error handling.
-        savedLinks.put(source.url(), source);
-        System.out.println("Saved link: " + source.url()); // For debugging
+        savedLinks.put(resource.url(), resource);
+        System.out.println("Saved link: " + resource.url()); // For debugging
     }
 
     @GetMapping("/saved")
-    public Collection<SourceDTO> getSaved() {
+    public Collection<RankedResourceDTO> getSaved() { // Changed return type
         System.out.println("Retrieving " + savedLinks.size() + " saved links."); // For debugging
         return savedLinks.values();
     }

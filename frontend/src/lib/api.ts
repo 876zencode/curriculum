@@ -4,24 +4,47 @@ export interface MetadataDTO {
   notes?: string;       // Optional as per the example
 }
 
-export interface SourceDTO {
+// New DTO for Learning Level Tags
+export interface LearningLevelTagDTO {
+  level: string; // e.g., "Beginner", "Intermediate", "Advanced"
+  description?: string;
+}
+
+// New DTO for Curriculum Topics (recursive)
+export interface CurriculumTopicDTO {
+  name: string;
+  summary: string;
+  order: number;
+  category: string; // e.g., "Fundamentals", "Tooling", "Ecosystem", "Best Practices", "Advanced Concepts"
+  subtopics: CurriculumTopicDTO[]; // Recursive
+}
+
+// Renamed and updated SourceDTO to RankedResourceDTO
+export interface RankedResourceDTO {
   title: string;
   url: string;
   is_official: boolean;
   confidence: number;
-  reasoning: string;
-  metadata: MetadataDTO;
+  reasoning: string; // Why this source is recommended
+  metadata?: MetadataDTO; // Existing metadata, can be augmented or specific to type
+  resource_type: string; // e.g., "Official Documentation", "Community Tutorial"
+  short_description: string;
+  learning_level_tags: LearningLevelTagDTO[];
+  skill_outcomes: string[];
+  estimated_difficulty: string; // e.g., "Beginner", "Intermediate", "Advanced"
+  pedagogical_quality_score: number;
+  curriculum_extract: CurriculumTopicDTO[];
 }
 
-export interface LLMSearchResponse {
+// Renamed and updated LLMSearchResponse to SearchResponseDTO
+export interface SearchResponseDTO {
   query: string;
-  results: SourceDTO[];
+  results: RankedResourceDTO[];
 }
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8080/api";
 
-export async function searchSources(query: string): Promise<LLMSearchResponse> {
-  // New endpoint: GET /api/search?query={q}
+export async function searchSources(query: string): Promise<SearchResponseDTO> {
   const response = await fetch(`${API_BASE_URL}/search?query=${query}`);
   if (!response.ok) {
     throw new Error('Network response was not ok');
@@ -29,8 +52,8 @@ export async function searchSources(query: string): Promise<LLMSearchResponse> {
   return response.json();
 }
 
-export async function saveSource(source: SourceDTO): Promise<void> {
-  // New endpoint: POST /api/saved
+// Updated saveSource to use RankedResourceDTO
+export async function saveSource(source: RankedResourceDTO): Promise<void> {
   const response = await fetch(`${API_BASE_URL}/saved`, {
     method: 'POST',
     headers: {
@@ -43,8 +66,8 @@ export async function saveSource(source: SourceDTO): Promise<void> {
   }
 }
 
-export async function getSavedSources(): Promise<SourceDTO[]> {
-  // New endpoint: GET /api/saved
+// Updated getSavedSources to return RankedResourceDTO[]
+export async function getSavedSources(): Promise<RankedResourceDTO[]> {
   const response = await fetch(`${API_BASE_URL}/saved`);
   if (!response.ok) {
     throw new Error('Network response was not ok');

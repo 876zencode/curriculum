@@ -1,45 +1,68 @@
-import { useState } from "react";
+import { useState, useEffect } from "react"; // Added useEffect
 import { useQuery } from "@tanstack/react-query";
-import { searchSources, saveSource, SourceDTO, LLMSearchResponse } from "@/lib/api";
+import { searchSources, saveSource, RankedResourceDTO, SearchResponseDTO } from "@/lib/api";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { ResultCard } from "@/components/ResultCard";
-import { useSavedSourcesStore } from "@/store/savedSourcesStore"; // Import the Zustand store
+import { useSavedSourcesStore } from "@/store/savedSourcesStore";
+import { useSearchStore } from "@/store/searchStore"; // Import the new search store
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 
 export function HomePage() {
-  const [inputQuery, setInputQuery] = useState("");
-  const [searchQuery, setSearchQuery] = useState("");
+  const { lastSearchQuery, lastSearchResults, setSearchState } = useSearchStore(); // Use the search store
+
+  const [inputQuery, setInputQuery] = useState(lastSearchQuery);
+  const [searchQuery, setSearchQuery] = useState(lastSearchQuery);
   const queryClient = useQueryClient();
 
-  const { data, isLoading, isError, error } = useQuery<LLMSearchResponse, Error>({
+  // Use the stored search results directly if available, otherwise fetch
+  const { data, isLoading, isError, error, refetch } = useQuery<SearchResponseDTO, Error>({
     queryKey: ["search", searchQuery],
     queryFn: () => searchSources(searchQuery),
-    enabled: !!searchQuery, // Only run query if searchQuery is not empty
+    enabled: !!searchQuery && searchQuery !== lastSearchQuery, // Only fetch if query changed or not initially loaded
+    initialData: searchQuery === lastSearchQuery ? lastSearchResults : undefined, // Use initialData for state restoration
+    onSuccess: (newData) => {
+      // Only update store if new data is different from existing store data
+      if (JSON.stringify(newData) !== JSON.stringify(lastSearchResults)) {
+        setSearchState(searchQuery, newData);
+      }
+    }
   });
+
+  // Effect to refetch if search query is enabled and no initial data
+  useEffect(() => {
+    if (!!searchQuery && !lastSearchResults) {
+      refetch();
+    }
+  }, [searchQuery, lastSearchResults, refetch]);
+
 
   const { savedSources, addItem, removeItem, isSourceSaved } = useSavedSourcesStore();
 
-  // Mutation for saving to backend (if desired, though current spec only mentions local storage)
-  // This is kept for consistency with the existing API client but the primary "save" is to Zustand.
   const saveToBackendMutation = useMutation({
     mutationFn: saveSource,
     onSuccess: () => {
-      // Invalidate the savedSources cache if we were fetching them from backend
       queryClient.invalidateQueries({ queryKey: ["savedSources"] });
     },
   });
 
   const handleSearch = () => {
-    setSearchQuery(inputQuery);
+    // Only perform search if query is not empty and different from current searchQuery
+    if (inputQuery.trim() !== "" && inputQuery.trim() !== searchQuery) {
+      setSearchQuery(inputQuery);
+      // Clear previous results in store to indicate a new search is happening
+      setSearchState(inputQuery, null);
+    } else if (inputQuery.trim() === searchQuery && lastSearchResults) {
+      // If query is the same and we have results, no need to refetch
+      setSearchState(searchQuery, lastSearchResults);
+    }
   };
 
-  const handleSave = (source: SourceDTO) => {
-    addItem(source); // Save to Zustand store
-    // Optionally, save to backend if there was a persistent backend for saved items
-    // saveToBackendMutation.mutate(source);
+  const handleSave = (resource: RankedResourceDTO) => {
+    addItem(resource);
+    // saveToBackendMutation.mutate(resource); // Keep optional backend save commented
   };
 
   const searchResults = data?.results || [];
@@ -74,12 +97,12 @@ export function HomePage() {
       )}
 
       <div className="space-y-4">
-        {searchResults.map((source) => (
+        {searchResults.map((resource) => (
           <ResultCard
-            key={source.url}
-            source={source}
+            key={resource.url}
+            resource={resource}
             onSave={handleSave}
-            isSaved={isSourceSaved(source.url)}
+            isSaved={isSourceSaved(resource.url)}
           />
         ))}
       </div>
