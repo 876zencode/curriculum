@@ -1,26 +1,24 @@
 package com.sotfinder.api.controller;
 
-import com.sotfinder.api.dto.SourceDTO;
-import com.sotfinder.api.service.SourceSearchService;
+import com.sotfinder.api.dto.LLMSearchResponse;
+import com.sotfinder.api.service.LLMAuthoritySearchService;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.List;
-
 @RestController
-@RequestMapping("/api/sources")
+@RequestMapping("/api")
 public class SourceSearchController {
 
-    private final SourceSearchService searchService;
+    private final LLMAuthoritySearchService llmAuthoritySearchService;
 
-    public SourceSearchController(SourceSearchService searchService) {
-        this.searchService = searchService;
+    public SourceSearchController(LLMAuthoritySearchService llmAuthoritySearchService) {
+        this.llmAuthoritySearchService = llmAuthoritySearchService;
     }
 
     @GetMapping("/search")
-    public List<SourceDTO> search(@RequestParam String query) {
-        return searchService.searchSources(query);
+    public LLMSearchResponse search(@RequestParam String query) {
+        return llmAuthoritySearchService.searchAuthorities(query);
     }
 }
