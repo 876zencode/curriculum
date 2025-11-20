@@ -8,6 +8,12 @@ primary_region = 'iad'
 
 [build]
 
+# Set environment variables for the application
+[env]
+  # Replace the URL with your actual Vercel frontend URL.
+  # You can add multiple URLs separated by a comma.
+  CORS_ALLOWED_ORIGINS = "https://curriculum-steel.vercel.app/,http://localhost:5173"
+
 [http_service]
   internal_port = 8080
   force_https = true
