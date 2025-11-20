@@ -1,19 +1,22 @@
 # .github/workflows/backend.yml
 
-name: "Backend: Run CI Tests"
+name: "Backend: Build and Deploy to Fly.io"
 
 on:
-  # This workflow runs only on pull requests targeting the main branch
-  pull_request:
+  push:
     branches:
       - main
     paths:
       - "backend/**"
       - ".github/workflows/backend.yml"
+  pull_request:
+    paths:
+      - "backend/**"
+      - ".github/workflows/backend.yml"
 
 jobs:
-  test-backend:
-    name: "Test Backend"
+  deploy-backend:
+    name: "Deploy Backend"
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -24,14 +27,12 @@ jobs:
       - name: "Checkout code"
         uses: actions/checkout@v4
 
-      - name: "Set up JDK 21 (Temurin)"
-        uses: actions/setup-java@v4
-        with:
-          java-version: "21"
-          distribution: "temurin"
-          # Cache Maven dependencies for faster builds
-          cache: 'maven'
+      - name: "Set up Fly.io CLI"
+        uses: superfly/fly-actions/setup-flyctl@master
 
-      - name: "Run Maven Tests"
-        # This command runs the tests defined in your pom.xml
-        run: ./mvnw -B test
+      # The deploy command now builds the Docker image remotely on Fly.io's
+      # builders and deploys it. It automatically handles preview apps for PRs.
+      - name: "Deploy to Fly.io"
+        run: flyctl deploy --remote-only
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}

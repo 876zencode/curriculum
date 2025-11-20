@@ -1,20 +1,17 @@
-# fly.toml file for a Spring Boot application using Buildpacks
-# App name should be unique on Fly.io
+# fly.toml file for a Spring Boot application with a Dockerfile
 app = "sot-finder-backend" 
-primary_region = "ord" # Example region, choose one close to your users
+primary_region = "ord"
 
-# The [build] section is intentionally left out. 
-# Fly.io will detect the `pom.xml` and use the appropriate Java buildpack.
-
+# The [build] section tells Fly.io to use the local Dockerfile for building.
+[build]
+  
 [http_service]
   internal_port = 8080
   force_https = true
   auto_stop_machines = true
   auto_start_machines = true
-  min_machines_running = 0 # Set to 1 for production to keep the app always on
+  min_machines_running = 0
 
-# Health checks ensure your app is running correctly before receiving traffic.
-# The readiness check requires the Spring Boot Actuator dependency.
 [checks]
   [checks.alive]
     type = "tcp"
@@ -28,7 +25,7 @@ primary_region = "ord" # Example region, choose one close to your users
     port = 8080
     interval = "15s"
     timeout = "2s"
-    grace_period = "30s" # Give the app time to start up
+    grace_period = "30s"
     method = "GET"
-    path = "/actuator/health/readiness" # Standard Spring Boot Actuator readiness endpoint
+    path = "/actuator/health/readiness"
     protocol = "http"
