@@ -1,3 +1,5 @@
+/// <reference types="vite/client" />
+
 // New DTOs corresponding to backend definitions
 export interface CanonicalSourceDTO {
     id: string; // Unique identifier for the source
@@ -68,6 +70,29 @@ export interface SourceBreakdownDTO {
     summary: string; // AI-generated summary of this source's content
     extracted_topics: TopicDTO[]; // Topics directly extracted from this source
     references: SourceReferenceDTO[]; // References found within this source
+}
+
+// Added DTOs
+export interface LearningLevelTag {
+  level: string;
+}
+
+export interface RankedResourceDTO {
+  url: string;
+  title: string;
+  resource_type: string;
+  short_description: string;
+  confidence: number;
+  pedagogical_quality_score?: number;
+  estimated_difficulty?: string;
+  learning_level_tags: LearningLevelTag[];
+  reasoning: string;
+}
+
+export interface MetadataDTO {
+    type?: string;
+    spec_version?: string;
+    notes?: string;
 }
 
 // Helper DTO for the combined /api/language/{slug} response

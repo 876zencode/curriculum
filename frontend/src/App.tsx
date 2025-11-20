@@ -2,7 +2,6 @@ import { BrowserRouter as Router, Routes, Route, Link } from "react-router-dom";
 import { HomePage } from "./pages/HomePage";
 import { CurriculumBreakdownPage } from "./pages/CurriculumBreakdownPage"; // Import new page
 import { LanguageCurriculumPage } from "./pages/LanguageCurriculumPage"; // Import new page
-import { Button } from "./components/ui/button";
 
 function App() {
   return (

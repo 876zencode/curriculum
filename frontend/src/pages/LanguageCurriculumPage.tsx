@@ -1,4 +1,3 @@
-import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { getLanguageOverview, LanguageOverviewResponse, LearningLevelDTO, TopicDTO, PracticeProjectDTO } from "@/lib/api";
@@ -10,7 +9,6 @@ import { CanonicalSourcesGroup } from "@/components/CanonicalSourcesGroup"; // W
 import { Badge } from "@/components/ui/badge";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Skeleton } from "@/components/ui/skeleton"; // Need to create this if it doesn't exist
-import { Progress } from "@/components/ui/progress"; // Need this for overall progress/time
 
 export function LanguageCurriculumPage() {
   const { slug } = useParams<{ slug: string }>();

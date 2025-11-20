@@ -1,6 +1,6 @@
-import { useState } from "react";
+
 import { Link } from "react-router-dom"; // Import Link
-import { RankedResourceDTO } from "@/lib/api"; // Updated DTO import
+import { RankedResourceDTO, LearningLevelTag } from "@/lib/api"; // Updated DTO import
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import {
@@ -51,7 +51,7 @@ export function ResultCard({ resource, onSave, isSaved }: ResultCardProps) {
           {resource.estimated_difficulty && (
             <Badge variant="outline">{resource.estimated_difficulty}</Badge>
           )}
-          {resource.learning_level_tags.map(tag => (
+          {resource.learning_level_tags.map((tag: LearningLevelTag) => (
             <Badge key={tag.level} variant="secondary">{tag.level}</Badge>
           ))}
         </div>

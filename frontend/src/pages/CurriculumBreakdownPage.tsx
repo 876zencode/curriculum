@@ -1,4 +1,3 @@
-import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { getSourceBreakdown, SourceBreakdownDTO, TopicDTO, SourceReferenceDTO } from "@/lib/api";
@@ -9,8 +8,7 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowLeft, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -94,7 +92,7 @@ export function CurriculumBreakdownPage() {
             <div className="mb-2">
               <span className="font-medium text-xs text-muted-foreground">Why this topic? </span>
               <div className="flex flex-wrap gap-1 mt-1">
-                {topic.explainability.map((explanation, idx) => <Badge key={idx} variant="info" className="px-2 py-0.5 text-xs">{explanation}</Badge>)}
+                {topic.explainability.map((explanation, idx) => <Badge key={idx} variant="outline" className="px-2 py-0.5 text-xs">{explanation}</Badge>)}
               </div>
             </div>
           )}
