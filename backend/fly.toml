@@ -1,0 +1,16 @@
+# fly.toml file generated for sot-finder-backend on 2025-11-20T12:00:00Z
+
+app = "sot-finder-backend"
+primary_region = "ord" # Example region, choose one close to your users
+
+[build]
+  # We are using a Dockerfile, so we don't need a builder.
+  # Fly.io will use the Dockerfile in this directory.
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = true
+  auto_start_machines = true
+  min_machines_running = 0 # Set to 1 for production apps to avoid cold starts
+  processes = ["app"]
