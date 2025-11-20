@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
-import { useSavedSourcesStore } from "@/store/savedSourcesStore";
-import { RankedResourceDTO, CurriculumTopicDTO, LearningLevelTagDTO } from "@/lib/api";
+import { useQuery } from "@tanstack/react-query";
+import { getSourceBreakdown, SourceBreakdownDTO, TopicDTO, SourceReferenceDTO } from "@/lib/api";
 import {
   Accordion,
   AccordionContent,
@@ -9,52 +9,100 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export function CurriculumBreakdownPage() {
-  const { sourceId } = useParams<{ sourceId: string }>();
-  const decodedSourceId = sourceId ? decodeURIComponent(sourceId) : '';
-  const { savedSources } = useSavedSourcesStore();
-  const [resource, setResource] = useState<RankedResourceDTO | null>(null);
+  const { slug, sourceId } = useParams<{ slug: string; sourceId: string }>();
 
-  useEffect(() => {
-    if (decodedSourceId && savedSources[decodedSourceId]) {
-      setResource(savedSources[decodedSourceId]);
-    } else {
-      // Handle case where resource is not found (e.g., redirect or show error)
-      // For now, we'll just set it to null and show a message
-      setResource(null);
-    }
-  }, [decodedSourceId, savedSources]);
+  const { data: sourceBreakdown, isLoading, isError, error } = useQuery<SourceBreakdownDTO, Error>({
+    queryKey: ["sourceBreakdown", slug, sourceId],
+    queryFn: () => getSourceBreakdown(slug!, sourceId!),
+    enabled: !!slug && !!sourceId,
+  });
 
-  if (!resource) {
+  if (isError) {
     return (
       <div className="container mx-auto p-8 text-center">
-        <h1 className="text-2xl font-bold mb-4">Resource Not Found</h1>
-        <p className="text-gray-600">The curriculum breakdown for this resource could not be found.</p>
-        <Link to="/">
-          <Button variant="link" className="mt-4"><ArrowLeft className="mr-2 h-4 w-4" />Back to Search</Button>
+        <h1 className="text-2xl font-bold mb-4">Error</h1>
+        <p className="text-red-500">Failed to load source breakdown: {error?.message}</p>
+        <Link to={`/language/${slug}`}>
+          <Button variant="link" className="mt-4"><ArrowLeft className="mr-2 h-4 w-4" />Back to Curriculum</Button>
         </Link>
       </div>
     );
   }
 
+  if (isLoading || !sourceBreakdown) {
+    return (
+      <div className="container mx-auto p-4 max-w-4xl">
+        <Skeleton className="h-10 w-1/4 mb-4" />
+        <div className="space-y-4">
+          <Skeleton className="h-[200px] w-full" />
+          <Skeleton className="h-[300px] w-full" />
+        </div>
+      </div>
+    );
+  }
+
   // Helper to render topics recursively
-  const renderTopics = (topics: CurriculumTopicDTO[], level: number = 0) => {
-    return topics.map((topic, index) => (
-      <AccordionItem value={`${topic.name}-${index}-${level}`} key={`${topic.name}-${index}-${level}`}>
-        <AccordionTrigger className={`text-left ${level === 0 ? 'font-semibold' : ''}`}>
-          {`${topic.order}. ${topic.name}`}
-          <Badge variant="secondary" className="ml-2">{topic.category}</Badge>
+  const renderTopics = (topics: TopicDTO[], level: number = 0) => {
+    return topics.map((topic) => (
+      <AccordionItem value={topic.id} key={topic.id}>
+        <AccordionTrigger className={`text-left ${level === 0 ? 'font-semibold text-base' : 'text-sm'}`}>
+          <div className="flex justify-between items-center w-full pr-4">
+            <span>{topic.order}. {topic.title}</span>
+            {topic.estimated_hours > 0 && (
+              <Badge variant="outline" className="ml-2 whitespace-nowrap">{topic.estimated_hours} hrs</Badge>
+            )}
+          </div>
         </AccordionTrigger>
-        <AccordionContent>
-          <p className="text-sm text-gray-700 dark:text-gray-300 mb-2">{topic.summary}</p>
+        <AccordionContent className="pl-4">
+          <p className="text-sm text-muted-foreground mb-2">{topic.description}</p>
+          {topic.outcomes && topic.outcomes.length > 0 && (
+            <div className="mb-2">
+              <span className="font-medium text-xs text-muted-foreground">Outcomes: </span>
+              <div className="flex flex-wrap gap-1 mt-1">
+                {topic.outcomes.map((outcome, idx) => <Badge key={idx} variant="secondary" className="px-2 py-0.5 text-xs">{outcome}</Badge>)}
+              </div>
+            </div>
+          )}
+           {topic.example_exercises && topic.example_exercises.length > 0 && (
+            <div className="mb-2">
+              <span className="font-medium text-xs text-muted-foreground">Exercises: </span>
+              <div className="flex flex-wrap gap-1 mt-1">
+                {topic.example_exercises.map((exercise, idx) => <Badge key={idx} variant="outline" className="px-2 py-0.5 text-xs">{exercise}</Badge>)}
+              </div>
+            </div>
+          )}
+          {topic.helpful_references && topic.helpful_references.length > 0 && (
+            <div className="mb-2">
+              <span className="font-medium text-xs text-muted-foreground">References: </span>
+              <div className="flex flex-wrap gap-1 mt-1">
+                {topic.helpful_references.map((ref: SourceReferenceDTO, idx: number) => (
+                    <a href={ref.url} target="_blank" rel="noopener noreferrer" key={idx} className="flex items-center text-blue-500 hover:underline text-xs">
+                        {ref.sourceId} <ExternalLink className="ml-1 h-3 w-3" />
+                    </a>
+                ))}
+              </div>
+            </div>
+          )}
+          {topic.explainability && topic.explainability.length > 0 && (
+            <div className="mb-2">
+              <span className="font-medium text-xs text-muted-foreground">Why this topic? </span>
+              <div className="flex flex-wrap gap-1 mt-1">
+                {topic.explainability.map((explanation, idx) => <Badge key={idx} variant="info" className="px-2 py-0.5 text-xs">{explanation}</Badge>)}
+              </div>
+            </div>
+          )}
           {topic.subtopics && topic.subtopics.length > 0 && (
-            <div className={`ml-4 ${level < 2 ? 'border-l pl-4' : ''}`}>
-              {renderTopics(topic.subtopics, level + 1)}
+            <div className="pl-4 border-l ml-2 mt-2">
+              <Accordion type="multiple" className="w-full">
+                {renderTopics(topic.subtopics, level + 1)}
+              </Accordion>
             </div>
           )}
         </AccordionContent>
@@ -62,119 +110,55 @@ export function CurriculumBreakdownPage() {
     ));
   };
 
+
   return (
     <div className="container mx-auto p-4 max-w-4xl">
-      <Link to="/">
-        <Button variant="link" className="mb-4"><ArrowLeft className="mr-2 h-4 w-4" />Back to Search</Button>
+      <Link to={`/language/${slug}`}>
+        <Button variant="link" className="mb-4"><ArrowLeft className="mr-2 h-4 w-4" />Back to {slug} Curriculum</Button>
       </Link>
 
       <Card className="mb-6">
         <CardHeader>
           <CardTitle className="text-3xl">
-            <a href={resource.url} target="_blank" rel="noopener noreferrer" className="hover:underline">
-              {resource.title}
+            <a href={sourceBreakdown.url} target="_blank" rel="noopener noreferrer" className="hover:underline">
+              {sourceBreakdown.title}
             </a>
           </CardTitle>
           <p className="text-sm text-gray-500 dark:text-gray-400">
-            {resource.resource_type} - {resource.url}
+            Source ID: {sourceBreakdown.sourceId} - {sourceBreakdown.url}
           </p>
         </CardHeader>
         <CardContent>
-          <p className="text-md mb-4">{resource.short_description}</p>
-          <div className="flex flex-wrap gap-2 mb-4">
-            <Badge variant="default">Confidence: {(resource.confidence * 100).toFixed(0)}%</Badge>
-            {resource.pedagogical_quality_score !== undefined && (
-              <Badge variant="secondary">Pedagogy: {(resource.pedagogical_quality_score * 100).toFixed(0)}%</Badge>
-            )}
-            {resource.estimated_difficulty && (
-              <Badge variant="outline">Difficulty: {resource.estimated_difficulty}</Badge>
-            )}
-            {resource.learning_level_tags.map((tag: LearningLevelTagDTO) => (
-              <Badge key={tag.level} variant="secondary">{tag.level}</Badge>
-            ))}
-          </div>
-
-          {resource.skill_outcomes && resource.skill_outcomes.length > 0 && (
-            <div className="mb-4">
-              <h3 className="text-lg font-semibold mb-2">Skill Outcomes:</h3>
-              <div className="flex flex-wrap gap-2">
-                {resource.skill_outcomes.map((skill, index) => (
-                  <Badge key={index} variant="secondary">{skill}</Badge>
-                ))}
-              </div>
-            </div>
-          )}
+          <p className="text-md mb-4">{sourceBreakdown.summary}</p>
         </CardContent>
       </Card>
 
-      {resource.curriculum_extract && resource.curriculum_extract.length > 0 && (
+      {sourceBreakdown.extracted_topics && sourceBreakdown.extracted_topics.length > 0 && (
         <Card className="mb-6">
           <CardHeader>
-            <CardTitle>Topics Breakdown</CardTitle>
+            <CardTitle>Extracted Topics</CardTitle>
           </CardHeader>
           <CardContent>
             <Accordion type="single" collapsible className="w-full">
-              {renderTopics(resource.curriculum_extract)}
+              {renderTopics(sourceBreakdown.extracted_topics)}
             </Accordion>
           </CardContent>
         </Card>
       )}
 
-      {/* Simplified Learning Path (Timeline) */}
-      <Card className="mb-6">
-        <CardHeader>
-          <CardTitle>Learning Path Overview</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="relative pl-8">
-            <div className="absolute left-0 top-0 h-full w-0.5 bg-gray-300 dark:bg-gray-700"></div> {/* Timeline line */}
-
-            {/* Beginner */}
-            <div className="mb-6 relative">
-              <span className="absolute -left-2 top-0 h-4 w-4 rounded-full bg-blue-500 dark:bg-blue-600 block"></span>
-              <h3 className="font-semibold text-lg ml-4">Beginner Core Topics</h3>
-              <p className="text-gray-600 dark:text-gray-400 ml-4">
-                Introduction to concepts, basic syntax, and fundamental building blocks.
-              </p>
-              {resource.estimated_difficulty === "Beginner" && (
-                  <Badge variant="outline" className="ml-4 mt-1">Recommended for this resource</Badge>
-              )}
-            </div>
-
-            {/* Intermediate */}
-            <div className="mb-6 relative">
-              <span className="absolute -left-2 top-0 h-4 w-4 rounded-full bg-green-500 dark:bg-green-600 block"></span>
-              <h3 className="font-semibold text-lg ml-4">Intermediate Topics</h3>
-              <p className="text-gray-600 dark:text-gray-400 ml-4">
-                Deeper dive into language features, common libraries, and architectural patterns.
-              </p>
-              {resource.estimated_difficulty === "Intermediate" && (
-                  <Badge variant="outline" className="ml-4 mt-1">Recommended for this resource</Badge>
-              )}
-            </div>
-
-            {/* Advanced */}
-            <div className="relative">
-              <span className="absolute -left-2 top-0 h-4 w-4 rounded-full bg-purple-500 dark:bg-purple-600 block"></span>
-              <h3 className="font-semibold text-lg ml-4">Advanced Skills</h3>
-              <p className="text-gray-600 dark:text-gray-400 ml-4">
-                Performance optimization, complex problem-solving, and ecosystem mastery.
-              </p>
-              {resource.estimated_difficulty === "Advanced" && (
-                  <Badge variant="outline" className="ml-4 mt-1">Recommended for this resource</Badge>
-              )}
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {resource.reasoning && (
+      {sourceBreakdown.references && sourceBreakdown.references.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle>Why this source is recommended</CardTitle>
+            <CardTitle>Internal References</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-gray-700 dark:text-gray-300">{resource.reasoning}</p>
+            <div className="flex flex-wrap gap-2">
+              {sourceBreakdown.references.map((ref, idx) => (
+                <a href={ref.url} target="_blank" rel="noopener noreferrer" key={idx} className="flex items-center text-blue-500 hover:underline text-sm">
+                  {ref.sourceId} - {ref.short_evidence || ref.snippet?.substring(0, 50) + "..."} <ExternalLink className="ml-1 h-3 w-3" />
+                </a>
+              ))}
+            </div>
           </CardContent>
         </Card>
       )}
