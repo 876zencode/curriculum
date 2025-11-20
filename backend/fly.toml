@@ -1,16 +1,34 @@
-# fly.toml file generated for sot-finder-backend on 2025-11-20T12:00:00Z
-
-app = "sot-finder-backend"
+# fly.toml file for a Spring Boot application using Buildpacks
+# App name should be unique on Fly.io
+app = "sot-finder-backend" 
 primary_region = "ord" # Example region, choose one close to your users
 
-[build]
-  # We are using a Dockerfile, so we don't need a builder.
-  # Fly.io will use the Dockerfile in this directory.
+# The [build] section is intentionally left out. 
+# Fly.io will detect the `pom.xml` and use the appropriate Java buildpack.
 
 [http_service]
   internal_port = 8080
   force_https = true
   auto_stop_machines = true
   auto_start_machines = true
-  min_machines_running = 0 # Set to 1 for production apps to avoid cold starts
-  processes = ["app"]
+  min_machines_running = 0 # Set to 1 for production to keep the app always on
+
+# Health checks ensure your app is running correctly before receiving traffic.
+# The readiness check requires the Spring Boot Actuator dependency.
+[checks]
+  [checks.alive]
+    type = "tcp"
+    interval = "15s"
+    timeout = "2s"
+    grace_period = "5s"
+    port = 8080
+
+  [checks.ready]
+    type = "http"
+    port = 8080
+    interval = "15s"
+    timeout = "2s"
+    grace_period = "30s" # Give the app time to start up
+    method = "GET"
+    path = "/actuator/health/readiness" # Standard Spring Boot Actuator readiness endpoint
+    protocol = "http"

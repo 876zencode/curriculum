@@ -1,23 +1,24 @@
 # .github/workflows/backend.yml
 
-name: "Backend: Build and Deploy to Fly.io"
+name: "Backend: Run CI Tests"
 
 on:
-  push:
+  # This workflow runs only on pull requests targeting the main branch
+  pull_request:
     branches:
       - main
     paths:
       - "backend/**"
       - ".github/workflows/backend.yml"
-  pull_request:
-    paths:
-      - "backend/**"
-      - ".github/workflows/backend.yml"
 
 jobs:
-  deploy-backend:
-    name: "Deploy Backend"
+  test-backend:
+    name: "Test Backend"
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        # Run all commands inside the backend directory
+        working-directory: ./backend
 
     steps:
       - name: "Checkout code"
@@ -28,25 +29,9 @@ jobs:
         with:
           java-version: "21"
           distribution: "temurin"
+          # Cache Maven dependencies for faster builds
+          cache: 'maven'
 
-      - name: "Setup Fly.io CLI"
-        uses: superfly/fly-actions/setup-flyctl@master
-
-      # Optional: Cache Maven packages to speed up builds
-      - name: "Cache Maven packages"
-        uses: actions/cache@v4
-        with:
-          path: ~/.m2
-          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
-          restore-keys: |
-            ${{ runner.os }}-m2-
-
-      # Deploy to Fly.io.
-      # This command will automatically build the Docker image and deploy it.
-      # For pull requests, it creates a preview app.
-      # For pushes to main, it deplaws to production.
-      - name: "Deploy to Fly.io"
-        working-directory: ./backend
-        run: flyctl deploy --remote-only
-        env:
-          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+      - name: "Run Maven Tests"
+        # This command runs the tests defined in your pom.xml
+        run: ./mvnw -B test
