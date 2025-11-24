@@ -14,5 +14,6 @@ public record TopicDTO(
     @JsonProperty("example_exercises") List<String> exampleExercises,
     @JsonProperty("helpful_references") List<SourceReferenceDTO> helpfulReferences,
     List<String> explainability, // Which input sources influenced this topic
-    List<TopicDTO> subtopics // Nested subtopics
+    List<TopicDTO> subtopics, // Nested subtopics
+    @JsonProperty("learning_resources") List<LearningResourceDTO> learningResources // Curated learning materials for this topic
 ) {}

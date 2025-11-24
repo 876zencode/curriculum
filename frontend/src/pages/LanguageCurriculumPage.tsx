@@ -1,21 +1,16 @@
 import { useParams, Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { getCanonicalSources, getCurriculum, CanonicalSourceDTO, CurriculumDTO } from "@/lib/api";
+import { getCurriculum, CurriculumDTO } from "@/lib/api"; // Removed getCanonicalSources and CanonicalSourceDTO
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { ArrowLeft, ExternalLink } from "lucide-react";
 import { CurriculumBreakdown } from "@/components/CurriculumBreakdown";
+import { LearningMaterialsSection } from "@/components/LearningMaterialsSection"; // Added import
 import { Skeleton } from "@/components/ui/skeleton";
 
 export function LanguageCurriculumPage() {
   const { slug } = useParams<{ slug: string }>();
-
-  const { data: canonicalSources, isLoading: sourcesLoading, isError: sourcesError, error: sourcesErrorMsg } = useQuery<CanonicalSourceDTO[], Error>({
-    queryKey: ["canonicalSources", slug],
-    queryFn: () => getCanonicalSources(slug!),
-    enabled: !!slug,
-  });
 
   const { data: curriculum, isLoading: curriculumLoading, isError: curriculumError, error: curriculumErrorMsg } = useQuery<CurriculumDTO, Error>({
     queryKey: ["curriculum", slug],
@@ -23,11 +18,11 @@ export function LanguageCurriculumPage() {
     enabled: !!slug,
   });
 
-  if (sourcesError || curriculumError) {
+  if (curriculumError) {
     return (
       <div className="container mx-auto p-8 text-center">
         <h1 className="text-2xl font-bold mb-4">Error</h1>
-        <p className="text-red-500">Failed to load curriculum: {sourcesErrorMsg?.message || curriculumErrorMsg?.message}</p>
+        <p className="text-red-500">Failed to load curriculum: {curriculumErrorMsg?.message}</p>
         <Link to="/">
           <Button variant="link" className="mt-4"><ArrowLeft className="mr-2 h-4 w-4" />Back to Languages</Button>
         </Link>
@@ -35,7 +30,7 @@ export function LanguageCurriculumPage() {
     );
   }
 
-  const isLoading = sourcesLoading || curriculumLoading;
+  const isLoading = curriculumLoading;
 
   return (
     <div className="container mx-auto p-4 max-w-5xl">
@@ -59,11 +54,11 @@ export function LanguageCurriculumPage() {
 
           <Separator className="my-6" />
 
-          {canonicalSources && (
+          {curriculum?.canonical_sources && curriculum.canonical_sources.length > 0 && (
             <div className="mb-8">
               <h2 className="text-2xl font-bold mb-4">Canonical Sources</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {canonicalSources.map((source) => (
+                {curriculum.canonical_sources.map((source) => (
                   <Card key={source.id}>
                     <CardHeader>
                       <CardTitle>{source.title}</CardTitle>
@@ -86,6 +81,8 @@ export function LanguageCurriculumPage() {
           <Separator className="my-6" />
 
           {curriculum && <CurriculumBreakdown curriculum={curriculum} />}
+
+          {curriculum && <LearningMaterialsSection curriculum={curriculum} />}
         </>
       )}
     </div>

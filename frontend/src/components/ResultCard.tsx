@@ -1,6 +1,6 @@
 
 import { Link } from "react-router-dom"; // Import Link
-import { RankedResourceDTO, LearningLevelTag } from "@/lib/api"; // Updated DTO import
+import { RankedResourceDTO, LearningLevelDTO } from "@/lib/api"; // Corrected DTO import
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import {

@@ -32,6 +32,26 @@ export interface PracticeProjectDTO {
     outcomes: string[]; // Skills gained
 }
 
+export interface LearningResourceDTO {
+    title: string;
+    url: string;
+    type: string; // e.g., "Documentation", "Video", "Article", "GitHub", "Book"
+    authority_score: number;
+    short_summary: string;
+}
+
+export interface RankedResourceDTO {
+    url: string;
+    title: string;
+    resource_type: string;
+    short_description: string;
+    confidence: number;
+    pedagogical_quality_score?: number;
+    estimated_difficulty?: string;
+    learning_level_tags: { level: string }[]; // Assuming this structure based on usage
+    reasoning?: string;
+}
+
 export interface TopicDTO {
     id: string; // Unique identifier for the topic
     title: string;
@@ -44,6 +64,7 @@ export interface TopicDTO {
     helpful_references: SourceReferenceDTO[];
     explainability: string[]; // Which sources influenced this
     subtopics: TopicDTO[]; // Recursive
+    learning_resources?: LearningResourceDTO[]; // Curated learning materials for this topic
 }
 
 export interface CurriculumDTO {

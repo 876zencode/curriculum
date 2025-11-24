@@ -52,9 +52,7 @@ public class JsonDataService {
                         if (node.has("name")) {
                             String name = node.get("name").asText();
                             String cleanName = cleanLanguageIdentifier(name);
-                            if (node.has("topics")) {
-                                curriculumCache.put(cleanName, node.get("topics"));
-                            }
+                            curriculumCache.put(cleanName, node); // Store the entire node
                         }
                     }
                 } else {
