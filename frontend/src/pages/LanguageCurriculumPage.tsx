@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Separator } from "@/components/ui/separator";
 import { ArrowLeft, ExternalLink } from "lucide-react";
 import { CurriculumBreakdown } from "@/components/CurriculumBreakdown";
-import { LearningMaterialsSection } from "@/components/LearningMaterialsSection"; // Added import
+// Removed import for LearningMaterialsSection
 import { Skeleton } from "@/components/ui/skeleton";
 
 export function LanguageCurriculumPage() {
@@ -54,11 +54,11 @@ export function LanguageCurriculumPage() {
 
           <Separator className="my-6" />
 
-          {curriculum?.canonical_sources && curriculum.canonical_sources.length > 0 && (
+          {curriculum?.canonicalSources && curriculum.canonicalSources.length > 0 && ( // Fixed canonical_sources to canonicalSources
             <div className="mb-8">
               <h2 className="text-2xl font-bold mb-4">Canonical Sources</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {curriculum.canonical_sources.map((source) => (
+                {curriculum.canonicalSources.map((source: CanonicalSourceDTO) => ( // Fixed canonical_sources to canonicalSources and added type
                   <Card key={source.id}>
                     <CardHeader>
                       <CardTitle>{source.title}</CardTitle>
@@ -81,8 +81,6 @@ export function LanguageCurriculumPage() {
           <Separator className="my-6" />
 
           {curriculum && <CurriculumBreakdown curriculum={curriculum} />}
-
-          {curriculum && <LearningMaterialsSection curriculum={curriculum} />}
         </>
       )}
     </div>

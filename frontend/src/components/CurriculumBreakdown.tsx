@@ -1,8 +1,49 @@
-import { CurriculumDTO, LearningLevelDTO, TopicDTO } from "@/lib/api";
+import { CurriculumDTO, LearningLevelDTO, TopicDTO, LearningResourceDTO } from "@/lib/api";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ExternalLink } from "lucide-react";
+import { Button } from "@/components/ui/button"; // Added Button import
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"; // Added CardDescription import
+import { ExternalLink, Book, Video, FileText, Github, Globe } from "lucide-react"; // Added new icons
+
+// Helper function to get icon based on resource type
+const getIconForResourceType = (type: string) => {
+  switch (type.toLowerCase()) {
+    case "documentation":
+    case "article":
+    case "tutorial": // Added tutorial
+      return <FileText className="h-4 w-4 mr-2" />;
+    case "video":
+      return <Video className="h-4 w-4 mr-2" />;
+    case "github":
+      return <Github className="h-4 w-4 mr-2" />;
+    case "book":
+      return <Book className="h-4 w-4 mr-2" />;
+    default:
+      return <Globe className="h-4 w-4 mr-2" />;
+  }
+};
+
+// Helper function to render learning resources
+const renderLearningResources = (resources: LearningResourceDTO[]) => (
+  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-4">
+    {resources.map((resource, index) => (
+      <Card key={index}>
+        <CardHeader>
+          <CardTitle className="text-md">{resource.title}</CardTitle>
+          <CardDescription className="text-sm">Type: {resource.type} | Authority: {(resource.authority_score * 100).toFixed(0)}%</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <p className="text-xs text-muted-foreground mb-3">{resource.short_summary}</p>
+          <a href={resource.url} target="_blank" rel="noopener noreferrer">
+            <Button variant="outline" className="w-full">
+              {getIconForResourceType(resource.type)} View Resource <ExternalLink className="ml-2 h-3 w-3" />
+            </Button>
+          </a>
+        </CardContent>
+      </Card>
+    ))}
+  </div>
+);
 
 export function CurriculumBreakdown({ curriculum }: { curriculum: CurriculumDTO }) {
   const renderTopics = (topics: TopicDTO[], level: number = 0) => {
@@ -46,6 +87,15 @@ export function CurriculumBreakdown({ curriculum }: { curriculum: CurriculumDTO 
               </div>
             </div>
           )}
+
+          {/* New section for Curated Learning Materials */}
+          {topic.learning_resources && topic.learning_resources.length > 0 && (
+            <div className="mt-4">
+              <span className="font-medium text-sm">Curated Learning Materials:</span>
+              {renderLearningResources(topic.learning_resources)}
+            </div>
+          )}
+
           {topic.subtopics && topic.subtopics.length > 0 && (
             <div className="pl-4 border-l ml-2 mt-2">
               <Accordion type="multiple" className="w-full">

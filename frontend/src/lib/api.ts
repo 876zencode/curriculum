@@ -32,6 +32,12 @@ export interface PracticeProjectDTO {
     outcomes: string[]; // Skills gained
 }
 
+export interface MetadataDTO {
+    type?: string;
+    spec_version?: string;
+    notes?: string;
+}
+
 export interface LearningResourceDTO {
     title: string;
     url: string;

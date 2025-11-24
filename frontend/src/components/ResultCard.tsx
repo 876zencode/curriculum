@@ -51,7 +51,7 @@ export function ResultCard({ resource, onSave, isSaved }: ResultCardProps) {
           {resource.estimated_difficulty && (
             <Badge variant="outline">{resource.estimated_difficulty}</Badge>
           )}
-          {resource.learning_level_tags.map((tag: LearningLevelTag) => (
+          {resource.learning_level_tags.map((tag: LearningLevelDTO) => (
             <Badge key={tag.level} variant="secondary">{tag.level}</Badge>
           ))}
         </div>
