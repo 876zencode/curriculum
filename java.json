@@ -1,0 +1,101 @@
+{
+  "name": "Java Developer Path",
+  "createdAt": "2025-11-24T18:08:38.687Z",
+  "topics": {
+    "topics": [
+      {
+        "topic": "Core Java Fundamentals",
+        "pillar": "Software Engineering & Backend Development",
+        "level": "Foundation",
+        "topicDefinition": "This topic covers the essential building blocks of the Java programming language, including the JVM, basic syntax, OOP principles, and the standard library. It establishes the foundation required for all higher-level Java development.",
+        "normalizedPrompt": "Teach me Core Java Fundamentals",
+        "domainCategory": "Programming & Software Development",
+        "trustProfile": "tech_programming",
+        "depthLevel": "foundation",
+        "searchHints": [
+          "Oracle Java official documentation basics",
+          "Core Java beginner tutorial oracle",
+          "Java OOP principles explained official",
+          "Java standard library guide",
+          "JVM basics for beginners"
+        ]
+      },
+      {
+        "topic": "Java Collections & Generics",
+        "pillar": "Software Engineering & Backend Development",
+        "level": "Intermediate",
+        "topicDefinition": "This topic introduces data structures, algorithms, and type-safe programming in Java using Collections and Generics, helping learners work effectively with real-world data.",
+        "normalizedPrompt": "Teach me Java Collections and Generics",
+        "domainCategory": "Programming & Software Development",
+        "trustProfile": "tech_programming",
+        "depthLevel": "intermediate",
+        "searchHints": [
+          "Oracle Java Collections Framework documentation",
+          "Java Generics guide official",
+          "Java List Set Map tutorial",
+          "Java comparable comparator oracle",
+          "Java generics best practices"
+        ]
+      },
+      {
+        "topic": "Spring Boot Essentials",
+        "pillar": "Backend Engineering & APIs",
+        "level": "Intermediate",
+        "topicDefinition": "This topic teaches how to build production-ready REST APIs using Spring Boot, covering controllers, dependency injection, application structure, configuration, and testing.",
+        "normalizedPrompt": "Teach me Spring Boot Essentials",
+        "domainCategory": "Programming & Software Development",
+        "trustProfile": "tech_programming",
+        "depthLevel": "intermediate",
+        "searchHints": [
+          "Spring Boot official documentation",
+          "Spring Boot getting started guide",
+          "Spring Boot REST API tutorial official",
+          "Spring Boot configuration properties",
+          "Spring Boot dependency injection understanding"
+        ]
+      },
+      {
+        "topic": "Java Build Tools & Packaging",
+        "pillar": "Tooling & DevOps Literacy",
+        "level": "Intermediate",
+        "topicDefinition": "This topic dives into Maven and Gradle, showing how Java applications are built, tested, packaged, and deployed using industry-standard tooling.",
+        "normalizedPrompt": "Teach me Java Build Tools",
+        "domainCategory": "Programming & Software Development",
+        "trustProfile": "tech_programming",
+        "depthLevel": "intermediate",
+        "searchHints": [
+          "Maven official documentation build lifecycle",
+          "Gradle official Java plugin guide",
+          "Java dependency management tutorial",
+          "Java project structure best practices",
+          "How Maven and Gradle differ"
+        ]
+      }
+    ]
+  },
+  "trustProfiles": {
+    "trustProfiles": {
+      "tech_programming": {
+        "weights": {
+          "authority": 0.45,
+          "recency": 0.25,
+          "clarity": 0.2,
+          "depth": 0.1
+        },
+        "preferredSources": [
+          "Oracle Java official documentation",
+          "Spring Boot official documentation",
+          "Recent tutorials (1-3 years)",
+          "High-quality architecture guides",
+          "Production best practices",
+          "High-quality GitHub examples"
+        ],
+        "discouragedSources": [
+          "Outdated Java tutorials",
+          "Unofficial forums with old info",
+          "Unverified Medium articles"
+        ]
+      }
+    }
+  }
+}

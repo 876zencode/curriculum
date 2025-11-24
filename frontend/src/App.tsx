@@ -1,6 +1,5 @@
 import { BrowserRouter as Router, Routes, Route, Link } from "react-router-dom";
 import { HomePage } from "./pages/HomePage";
-import { CurriculumBreakdownPage } from "./pages/CurriculumBreakdownPage"; // Import new page
 import { LanguageCurriculumPage } from "./pages/LanguageCurriculumPage"; // Import new page
 
 function App() {
@@ -19,7 +18,6 @@ function App() {
           <Routes>
             <Route path="/" element={<HomePage />} />
             <Route path="/language/:slug" element={<LanguageCurriculumPage />} /> {/* New language curriculum page */}
-            <Route path="/language/:slug/sources/:sourceId" element={<CurriculumBreakdownPage />} /> {/* New route */}
           </Routes>
         </main>
       </div>

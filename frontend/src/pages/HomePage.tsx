@@ -2,13 +2,20 @@ import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import { useEffect, useState } from "react";
+import { getLanguages } from "@/lib/api";
 
 export function HomePage() {
-  const languages = [
-    { slug: "java", name: "Java", description: "The leading language for enterprise software, Android development, and large-scale systems." },
-    { slug: "react", name: "React", description: "A JavaScript library for building user interfaces, maintained by Meta and a community of individual developers and companies." },
-    // Add more languages as needed
-  ];
+  const [languages, setLanguages] = useState<string[]>([]);
+
+  useEffect(() => {
+    getLanguages().then(setLanguages);
+  }, []);
+
+  const languageDescriptions: { [key: string]: string } = {
+    java: "The leading language for enterprise software, Android development, and large-scale systems.",
+    react: "A JavaScript library for building user interfaces, maintained by Meta and a community of individual developers and companies.",
+  };
 
   return (
     <div className="container mx-auto p-4 max-w-3xl">
@@ -19,13 +26,13 @@ export function HomePage() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {languages.map((lang) => (
-          <Card key={lang.slug}>
+          <Card key={lang}>
             <CardHeader>
-              <CardTitle>{lang.name}</CardTitle>
-              <CardDescription>{lang.description}</CardDescription>
+              <CardTitle>{lang.charAt(0).toUpperCase() + lang.slice(1)}</CardTitle>
+              <CardDescription>{languageDescriptions[lang.toLowerCase()] || "A popular programming language."}</CardDescription>
             </CardHeader>
             <CardContent>
-              <Link to={`/language/${lang.slug}`}>
+              <Link to={`/language/${lang}`}>
                 <Button className="w-full">View Curriculum</Button>
               </Link>
             </CardContent>

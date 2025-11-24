@@ -11,12 +11,6 @@ export interface CanonicalSourceDTO {
     short_summary: string; // AI-generated brief description
 }
 
-export interface ConsolidatedSourcesDTO {
-    language: string;
-    headline: string; // e.g., "Java — Canonical Learning Hub"
-    sources: CanonicalSourceDTO[];
-}
-
 export interface LearningLevelDTO {
     level: string; // "Beginner", "Intermediate", "Advanced", "Expert"
     estimated_hours: number; // Total estimated hours for this level
@@ -63,90 +57,29 @@ export interface CurriculumDTO {
     model_version: string;
 }
 
-export interface SourceBreakdownDTO {
-    sourceId: string; // Corresponds to CanonicalSourceDTO.id
-    title: string;
-    url: string;
-    summary: string; // AI-generated summary of this source's content
-    extracted_topics: TopicDTO[]; // Topics directly extracted from this source
-    references: SourceReferenceDTO[]; // References found within this source
-}
+const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:8080/api";
 
-// Added DTOs
-export interface LearningLevelTag {
-  level: string;
-}
-
-export interface RankedResourceDTO {
-  url: string;
-  title: string;
-  resource_type: string;
-  short_description: string;
-  confidence: number;
-  pedagogical_quality_score?: number;
-  estimated_difficulty?: string;
-  learning_level_tags: LearningLevelTag[];
-  reasoning: string;
-}
-
-export interface MetadataDTO {
-    type?: string;
-    spec_version?: string;
-    notes?: string;
-}
-
-// Helper DTO for the combined /api/language/{slug} response
-export interface LanguageOverviewResponse {
-    consolidatedSources: ConsolidatedSourcesDTO;
-    curriculum: CurriculumDTO;
-}
-
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8080/api";
-
-// New API call functions for LanguageController
-
-export async function getLanguageOverview(slug: string): Promise<LanguageOverviewResponse> {
-    const response = await fetch(`${API_BASE_URL}/language/${slug}`);
+export async function getLanguages(): Promise<string[]> {
+    const response = await fetch(`${API_BASE_URL}/curriculum/metadata`);
     if (!response.ok) {
-        throw new Error(`Error fetching language overview for ${slug}`);
+        throw new Error("Error fetching languages");
     }
     return response.json();
 }
 
-export async function getLanguageSources(slug: string): Promise<ConsolidatedSourcesDTO> {
-    const response = await fetch(`${API_BASE_URL}/language/${slug}/sources`);
+export async function getCanonicalSources(language: string): Promise<CanonicalSourceDTO[]> {
+    const response = await fetch(`${API_BASE_URL}/curriculum/${language}/canonical-sources`);
     if (!response.ok) {
-        throw new Error(`Error fetching language sources for ${slug}`);
+        throw new Error(`Error fetching canonical sources for ${language}`);
     }
     return response.json();
 }
 
-export async function getLanguageCurriculum(slug: string): Promise<CurriculumDTO> {
-    const response = await fetch(`${API_BASE_URL}/language/${slug}/curriculum`);
+export async function getCurriculum(language: string): Promise<CurriculumDTO> {
+    const response = await fetch(`${API_BASE_URL}/curriculum/${language}/curriculum`);
     if (!response.ok) {
-        throw new Error(`Error fetching language curriculum for ${slug}`);
+        throw new Error(`Error fetching curriculum for ${language}`);
     }
     return response.json();
 }
 
-export async function getSourceBreakdown(slug: string, sourceId: string): Promise<SourceBreakdownDTO> {
-    const response = await fetch(`${API_BASE_URL}/language/${slug}/sources/${sourceId}/breakdown`);
-    if (!response.ok) {
-        throw new Error(`Error fetching source breakdown for ${sourceId} in ${slug}`);
-    }
-    return response.json();
-}
-
-export async function refreshLanguageCurriculum(slug: string): Promise<ConsolidatedSourcesDTO> {
-    const response = await fetch(`${API_BASE_URL}/language/${slug}/refresh`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-    });
-    if (!response.ok) {
-        throw new Error(`Error refreshing curriculum for ${slug}`);
-    }
-    return response.json();
-}

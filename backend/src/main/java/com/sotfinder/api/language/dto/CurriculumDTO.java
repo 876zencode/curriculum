@@ -3,11 +3,11 @@ package com.sotfinder.api.language.dto;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Map; // Map is no longer needed for recommendations, but keep for now if other recommendations exist
 
 public record CurriculumDTO(
     String language,
     @JsonProperty("generated_at") LocalDateTime generatedAt,
+    @JsonProperty("canonical_sources") List<CanonicalSourceDTO> canonicalSources,
     @JsonProperty("overall_learning_path") List<LearningLevelDTO> overallLearningPath,
     @JsonProperty("core_sources") List<String> coreSources, // New field for core sources
     @JsonProperty("supplemental_sources") List<String> supplementalSources, // New field for supplemental sources

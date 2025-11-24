@@ -1,0 +1,52 @@
+You already have full context of the Canonical Curriculum Explorer application (Spring Boot backend + React frontend with shadcn/UI). Extend the existing system so that, after generating canonical sources and a curriculum using the JSON ingestion + LLM, the application also generates a curated list of high-quality learning materials (documentation, videos, articles, GitHub repos) for every curriculum subtopic.
+
+Use the existing trust profile (authority, recency, clarity, depth) to evaluate and select resources.
+
+BACKEND REQUIREMENTS:
+1. Add a new `LearningResourceService`. For each curriculum subtopic:
+   - Use a new LLM call to generate 5–10 authoritative resources.
+   - Use the trust profile weights from the JSON to influence the LLM.
+   - Resources may include: official documentation, verified tutorials, YouTube videos from authoritative instructors, GitHub repos, books, and high-quality technical articles.
+   - Normalize into DTOs.
+
+2. Add endpoints:
+   GET /api/curriculum/{language}/learning-resources
+
+3. Update the unified response so that:
+   - Canonical Sources
+   - Curriculum Breakdown
+   - Learning Resources
+   are accessible through one aggregated API call.
+
+4. Implement clean Java OOP design:
+   - Records for DTOs
+   - Interfaces for services
+   - LLMService reused with different prompt templates
+   - LLM prompt templates stored in `/prompts` folder
+   - Trust profile applied consistently
+
+FRONTEND REQUIREMENTS:
+1. In `/language/{languageName}`, add a new section:
+   “Curated Learning Materials”
+   Display the learning materials grouped by curriculum topic → subtopic.
+
+2. Use shadcn components:
+   - Accordion for topics
+   - Cards for resource items
+   - Icons for resource type (video, article, docs, GitHub)
+
+3. No hard-coded resources. All data must come from:
+   - canonical sources endpoint
+   - curriculum endpoint
+   - learning-resources endpoint
+
+4. Add loading states and skeletons.
+
+DELIVERABLES:
+- Updated Java backend code for LearningResourceService, controllers, DTOs, LLM integration.
+- Updated React components/pages to render the new “Curated Learning Materials” section.
+- Refactored unified API response.
+- Code examples of prompt templates for the LLM that generate high-authority, pedagogically sound resource lists.
+- Final merged example demonstrating Java as the proof of concept.
+
+Generate all updated file structures, code, and glue logic for both backend and frontend.
