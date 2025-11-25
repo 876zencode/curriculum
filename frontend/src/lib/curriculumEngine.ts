@@ -181,17 +181,16 @@ export async function getCurriculumConfigHash(slug: string): Promise<string | nu
 }
 
 export async function callOpenAiChatJSON(prompt: string): Promise<any> {
-  const apiKey = import.meta.env.VITE_OPENAI_API_KEY;
+  const proxyUrl = import.meta.env.VITE_LLM_PROXY_URL || "/api/llm-proxy";
   const model = import.meta.env.VITE_OPENAI_MODEL || "gpt-4o-mini";
-  if (!apiKey) {
-    throw new Error("VITE_OPENAI_API_KEY is not configured.");
+  if (!proxyUrl) {
+    throw new Error("VITE_LLM_PROXY_URL is not configured.");
   }
 
-  const response = await fetch("https://api.openai.com/v1/chat/completions", {
+  const response = await fetch(proxyUrl, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${apiKey}`,
     },
     body: JSON.stringify({
       model,
@@ -201,7 +200,7 @@ export async function callOpenAiChatJSON(prompt: string): Promise<any> {
 
   if (!response.ok) {
     const text = await response.text();
-    throw new Error(`OpenAI call failed: ${response.status} ${response.statusText} - ${text}`);
+    throw new Error(`LLM proxy call failed: ${response.status} ${response.statusText} - ${text}`);
   }
 
   const data = await response.json();

@@ -37,8 +37,11 @@ The frontend is a React application that uses Vite and shadcn/ui. It has the fol
 2.  Create a `.env` file with the following variables:
     ```
     VITE_BACKEND_URL=http://localhost:8080/api
-    VITE_SUPABASE_URL=<your Supabase project URL>
-    VITE_SUPABASE_ANON_KEY=<your Supabase anon key>
+    VITE_CURRICULUM_DATA_URL=/curriculum-configurations
+    VITE_LLM_PROXY_URL=/api/llm-proxy              # points to a server/edge function that holds the OpenAI key
+    VITE_OPENAI_MODEL=gpt-4o-mini                  # safe to expose
+    VITE_SUPABASE_URL=<your Supabase project URL>  # public
+    VITE_SUPABASE_ANON_KEY=<your Supabase anon key> # public (with RLS policies)
     ```
 3.  Install the dependencies using the following command:
     ```
@@ -59,6 +62,11 @@ curriculum jsonb not null,
 config_hash text,
 updated_at timestamptz default now()
 ```
+
+### Secrets
+
+- Do **not** place the OpenAI API key in the frontend. Put it in a serverless/edge function or backend and expose that via `VITE_LLM_PROXY_URL`. The proxy should read `OPENAI_API_KEY` from server-side env only.
+- `VITE_SUPABASE_ANON_KEY` is designed to be public, but only safe if Row Level Security is enabled and policies restrict the `anon` role to intended access.
 
 ## How to run the application
 
