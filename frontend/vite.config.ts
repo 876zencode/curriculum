@@ -16,6 +16,11 @@ export default defineConfig({
         target: "http://localhost:8080",
         changeOrigin: true,
       },
+      "/api/curriculum-config": {
+        target: "https://trustdash.replit.app",
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/curriculum-config/, "/api/configuration"),
+      },
     },
   },
 })
