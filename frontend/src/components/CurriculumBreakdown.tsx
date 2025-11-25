@@ -69,7 +69,7 @@ const renderLearningResources = (resources: LearningResourceDTO[]) => (
 );
 
 export function CurriculumBreakdown({ curriculum }: { curriculum: CurriculumDTO }) {
-  const renderTopics = (topics: TopicDTO[], level: number = 0) => {
+  const renderTopics = (topics: TopicDTO[], curriculumData: CurriculumDTO, level: number = 0) => { // Added curriculumData param
     return topics.map((topic) => (
       <AccordionItem value={topic.id} key={topic.id}>
         <AccordionTrigger className={`text-left ${level === 0 ? 'font-semibold text-base' : 'text-sm'}`}>
@@ -102,11 +102,18 @@ export function CurriculumBreakdown({ curriculum }: { curriculum: CurriculumDTO 
             <div className="mb-2">
               <span className="font-medium text-xs text-muted-foreground">References: </span>
               <div className="flex flex-wrap gap-1 mt-1">
-                {topic.helpful_references.map((ref, idx) => (
-                    <a href={ref.url} target="_blank" rel="noopener noreferrer" key={idx} className="flex items-center text-blue-500 hover:underline text-xs">
-                        {ref.sourceId} <ExternalLink className="ml-1 h-3 w-3" />
+                {topic.helpful_references.map((ref, idx) => {
+                  const canonicalSource = curriculumData.canonical_sources?.find(cs => cs.id === ref.sourceId);
+                  if (!canonicalSource) return null; // Or render a fallback
+
+                  return (
+                    <a href={canonicalSource.url} target="_blank" rel="noopener noreferrer" key={idx} 
+                       className="flex items-center text-blue-500 hover:underline text-xs"
+                       title={`${canonicalSource.title} (${canonicalSource.steward}): ${canonicalSource.short_summary}`}> {/* Tooltip */}
+                        {canonicalSource.title} <ExternalLink className="ml-1 h-3 w-3" />
                     </a>
-                ))}
+                  );
+                })}
               </div>
             </div>
           )}
@@ -122,7 +129,7 @@ export function CurriculumBreakdown({ curriculum }: { curriculum: CurriculumDTO 
           {topic.subtopics && topic.subtopics.length > 0 && (
             <div className="pl-4 border-l ml-2 mt-2">
               <Accordion type="multiple" className="w-full">
-                {renderTopics(topic.subtopics, level + 1)}
+                {renderTopics(topic.subtopics, curriculumData, level + 1)} {/* Pass curriculumData here */}
               </Accordion>
             </div>
           )}
@@ -150,7 +157,7 @@ export function CurriculumBreakdown({ curriculum }: { curriculum: CurriculumDTO 
             </CardHeader>
             <CardContent>
               <Accordion type="multiple" className="w-full">
-                {renderTopics(levelData.topics)}
+                {renderTopics(levelData.topics, curriculum)} {/* Pass curriculum here */}
               </Accordion>
             </CardContent>
           </Card>

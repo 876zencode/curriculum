@@ -43,13 +43,15 @@ public class CurriculumDataLoaderService {
         System.out.println("CurriculumDataLoaderService: Instance created."); // Added logging
     }
 
-    @PostConstruct // Run once on application startup
+        // Removed @PostConstruct. This method will now only be triggered by the @Scheduled cron job.
 
-    @Scheduled(cron = "0 0 3 * * ?") // Runs every day at 3 AM for periodic updates
+        @Scheduled(cron = "0 0 3 * * ?") // Runs every day at 3 AM for periodic updates
 
-    @Transactional
+        @Transactional
 
-    public void loadAndPersistCurriculumData() {
+        public void loadAndPersistCurriculumData() {
+
+    
 
         System.out.println("CurriculumDataLoaderService: loadAndPersistCurriculumData method invoked."); // Added logging
 

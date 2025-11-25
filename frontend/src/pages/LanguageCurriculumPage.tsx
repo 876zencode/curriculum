@@ -52,32 +52,7 @@ export function LanguageCurriculumPage() {
             {curriculum?.explanation || "AI-generated curriculum for " + slug}
           </p>
 
-          <Separator className="my-6" />
-
-          {curriculum?.canonical_sources && curriculum.canonical_sources.length > 0 && ( // Fixed canonicalSources to canonical_sources
-            <div className="mb-8">
-              <h2 className="text-2xl font-bold mb-4">Canonical Sources</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {curriculum.canonical_sources.map((source: CanonicalSourceDTO) => ( // Fixed canonicalSources to canonical_sources
-                  <Card key={source.id}>
-                    <CardHeader>
-                      <CardTitle>{source.title}</CardTitle>
-                      <CardDescription>{source.steward}</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <p className="text-sm text-muted-foreground mb-4">{source.short_summary}</p>
-                      <a href={source.url} target="_blank" rel="noopener noreferrer">
-                        <Button className="w-full">
-                          Go to source <ExternalLink className="ml-2 h-4 w-4" />
-                        </Button>
-                      </a>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            </div>
-          )}
-
+          {/* Removed dedicated Canonical Sources section */}
           <Separator className="my-6" />
 
           {curriculum && <CurriculumBreakdown curriculum={curriculum} />}
