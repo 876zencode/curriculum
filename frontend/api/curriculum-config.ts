@@ -12,13 +12,29 @@ export default async function handler(req: Request): Promise<Response> {
   }
 
   const upstream = await fetch(UPSTREAM_URL, { method: "GET" });
-  const body = await upstream.text();
+  const rawBody = await upstream.text();
+
+  // Try to pass through JSON; if upstream sends HTML or other content, wrap in an error payload.
+  let responseBody: string;
+  let contentType = upstream.headers.get("content-type") ?? "application/json";
+  if (contentType.includes("application/json")) {
+    responseBody = rawBody;
+  } else {
+    contentType = "application/json";
+    responseBody = JSON.stringify({
+      error: "Upstream response was not JSON",
+      status: upstream.status,
+      snippet: rawBody.slice(0, 500),
+    });
+  }
+
+  const status = upstream.ok ? upstream.status : 502;
 
   return cors(
-    new Response(body, {
-      status: upstream.status,
+    new Response(responseBody, {
+      status,
       headers: {
-        "content-type": upstream.headers.get("content-type") ?? "application/json",
+        "content-type": contentType,
       },
     }),
   );
