@@ -1,6 +1,7 @@
 package com.sotfinder.api.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sotfinder.api.language.dto.CurriculumDTO;
 import com.sotfinder.api.language.entity.CurriculumEntity;
 import com.sotfinder.api.language.repository.CurriculumRepository;
