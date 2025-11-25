@@ -54,10 +54,9 @@ export interface RankedResourceDTO {
     confidence: number;
     pedagogical_quality_score?: number;
     estimated_difficulty?: string;
-    learning_level_tags: { level: string }[]; // Assuming this structure based on usage
+    learning_level_tags: LearningLevelDTO[]; // Changed to LearningLevelDTO[]
     reasoning?: string;
 }
-
 export interface TopicDTO {
     id: string; // Unique identifier for the topic
     title: string;
@@ -76,6 +75,7 @@ export interface TopicDTO {
 export interface CurriculumDTO {
     language: string;
     generated_at: string; // LocalDateTime as string
+    canonical_sources: CanonicalSourceDTO[]; // Changed canonicalSources to canonical_sources
     overall_learning_path: LearningLevelDTO[];
     core_sources: string[]; // Explicit field for core sources
     supplemental_sources: string[]; // Explicit field for supplemental sources
@@ -83,7 +83,6 @@ export interface CurriculumDTO {
     explanation: string; // How LLM consolidated
     model_version: string;
 }
-
 const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:8080/api";
 
 export async function getLanguages(): Promise<string[]> {

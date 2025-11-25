@@ -23,6 +23,24 @@ const getIconForResourceType = (type: string) => {
   }
 };
 
+// Helper function to get color class based on resource type
+const getResourceTypeColorClass = (type: string) => {
+  switch (type.toLowerCase()) {
+    case "video":
+      return "bg-green-500 text-white";
+    case "article":
+    case "documentation":
+    case "tutorial":
+      return "bg-blue-500 text-white";
+    case "github":
+      return "bg-purple-500 text-white";
+    case "book":
+      return "bg-yellow-500 text-black"; // Text might need to be black for yellow bg
+    default:
+      return "bg-gray-500 text-white";
+  }
+};
+
 // Helper function to render learning resources
 const renderLearningResources = (resources: LearningResourceDTO[]) => (
   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-4">
@@ -30,7 +48,12 @@ const renderLearningResources = (resources: LearningResourceDTO[]) => (
       <Card key={index}>
         <CardHeader>
           <CardTitle className="text-md">{resource.title}</CardTitle>
-          <CardDescription className="text-sm">Type: {resource.type} | Authority: {(resource.authority_score * 100).toFixed(0)}%</CardDescription>
+          <CardDescription className="flex items-center text-sm">
+            <span className={`px-2 py-0.5 rounded-full ${getResourceTypeColorClass(resource.type)} mr-2`}>
+              {resource.type}
+            </span>
+            | Authority: {(resource.authority_score * 100).toFixed(0)}%
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <p className="text-xs text-muted-foreground mb-3">{resource.short_summary}</p>

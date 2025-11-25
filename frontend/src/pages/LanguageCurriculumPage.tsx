@@ -1,6 +1,6 @@
 import { useParams, Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { getCurriculum, CurriculumDTO } from "@/lib/api"; // Removed getCanonicalSources and CanonicalSourceDTO
+import { getCurriculum, CurriculumDTO, CanonicalSourceDTO } from "@/lib/api"; // Added CanonicalSourceDTO
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
@@ -54,11 +54,11 @@ export function LanguageCurriculumPage() {
 
           <Separator className="my-6" />
 
-          {curriculum?.canonicalSources && curriculum.canonicalSources.length > 0 && ( // Fixed canonical_sources to canonicalSources
+          {curriculum?.canonical_sources && curriculum.canonical_sources.length > 0 && ( // Fixed canonicalSources to canonical_sources
             <div className="mb-8">
               <h2 className="text-2xl font-bold mb-4">Canonical Sources</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {curriculum.canonicalSources.map((source: CanonicalSourceDTO) => ( // Fixed canonical_sources to canonicalSources and added type
+                {curriculum.canonical_sources.map((source: CanonicalSourceDTO) => ( // Fixed canonicalSources to canonical_sources
                   <Card key={source.id}>
                     <CardHeader>
                       <CardTitle>{source.title}</CardTitle>
