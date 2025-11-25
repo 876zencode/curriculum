@@ -26,16 +26,19 @@ public class CurriculumDataLoaderService {
     private final LanguageCurriculumService languageCurriculumService;
     private final CurriculumRepository curriculumRepository;
     private final CurriculumMapper curriculumMapper; // Injected mapper
+    private final ObjectMapper objectMapper; // Injected ObjectMapper
 
     public CurriculumDataLoaderService(
             JsonDataService jsonDataService,
             LanguageCurriculumService languageCurriculumService,
             CurriculumRepository curriculumRepository,
-            CurriculumMapper curriculumMapper) {
+            CurriculumMapper curriculumMapper,
+            ObjectMapper objectMapper) { // Inject ObjectMapper
         this.jsonDataService = jsonDataService;
         this.languageCurriculumService = languageCurriculumService;
         this.curriculumRepository = curriculumRepository;
         this.curriculumMapper = curriculumMapper;
+        this.objectMapper = objectMapper; // Initialize ObjectMapper
         System.out.println("CurriculumDataLoaderService: Instance created."); // Added logging
     }
 
@@ -66,7 +69,8 @@ public class CurriculumDataLoaderService {
                     System.err.println("No valid topics config found for language: " + language + ", skipping.");
                     continue;
                 }
-                String currentConfigTopicsJson = fullConfigData.get("topics").toString();
+                // Generate a canonical JSON string for consistent hashing
+                String currentConfigTopicsJson = objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(fullConfigData.get("topics"));
                 String currentConfigTopicsHash = calculateSHA256Hash(currentConfigTopicsJson); // calculateSHA256Hash will also need to be added
 
                 Optional<CurriculumEntity> existingCurriculum = curriculumRepository.findByLanguage(language);
