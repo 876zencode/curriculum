@@ -1,9 +1,13 @@
-import { CurriculumDTO, LearningLevelDTO, TopicDTO, LearningResourceDTO } from "@/lib/types";
+import { useState } from "react";
+import { CurriculumDTO, LearningLevelDTO, TopicDTO, LearningResourceDTO, GeneratedAssetDTO } from "@/lib/types";
+import { getGeneratedAssetForTopic } from "@/lib/api";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button"; // Added Button import
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"; // Added CardDescription import
-import { ExternalLink, Book, Video, FileText, Github, Globe } from "lucide-react"; // Added new icons
+import { Progress } from "@/components/ui/progress";
+import { ExternalLink, Book, Video, FileText, Github, Globe, Eye, EyeOff } from "lucide-react"; // Added new icons
+import { useMutation } from "@tanstack/react-query";
 
 // Helper function to get icon based on resource type
 const getIconForResourceType = (type: string) => {
@@ -68,75 +72,252 @@ const renderLearningResources = (resources: LearningResourceDTO[]) => (
   </div>
 );
 
-export function CurriculumBreakdown({ curriculum }: { curriculum: CurriculumDTO }) {
-  const renderTopics = (topics: TopicDTO[], curriculumData: CurriculumDTO, level: number = 0) => { // Added curriculumData param
-    return topics.map((topic) => (
-      <AccordionItem value={topic.id} key={topic.id}>
-        <AccordionTrigger className={`text-left ${level === 0 ? 'font-semibold text-base' : 'text-sm'}`}>
-          <div className="flex justify-between items-center w-full pr-4">
-            <span>{topic.order}. {topic.title}</span>
-            {topic.estimated_hours > 0 && (
-              <Badge variant="outline" className="ml-2 whitespace-nowrap">{topic.estimated_hours} hrs</Badge>
-            )}
+function TopicItem({
+  topic,
+  curriculum,
+  level = 0,
+  languageSlug,
+}: {
+  topic: TopicDTO;
+  curriculum: CurriculumDTO;
+  level?: number;
+  languageSlug: string;
+}) {
+  const [showSummary, setShowSummary] = useState(true);
+  const [showAudio, setShowAudio] = useState(true);
+  const summaryMutation = useMutation<GeneratedAssetDTO, Error>({
+    mutationFn: () => getGeneratedAssetForTopic(languageSlug, topic.id, "summary_article"),
+    onSuccess: () => setShowSummary(true),
+  });
+
+  const audioMutation = useMutation<GeneratedAssetDTO, Error>({
+    mutationFn: () => getGeneratedAssetForTopic(languageSlug, topic.id, "audio_lesson"),
+    onSuccess: () => setShowAudio(true),
+  });
+
+  return (
+    <AccordionItem value={topic.id} key={topic.id}>
+      <AccordionTrigger className={`text-left ${level === 0 ? "font-semibold text-base" : "text-sm"}`}>
+        <div className="flex justify-between items-center w-full pr-4">
+          <span>
+            {topic.order}. {topic.title}
+          </span>
+          {topic.estimated_hours > 0 && (
+            <Badge variant="outline" className="ml-2 whitespace-nowrap">
+              {topic.estimated_hours} hrs
+            </Badge>
+          )}
+        </div>
+      </AccordionTrigger>
+      <AccordionContent className="pl-4">
+        <p className="text-sm text-muted-foreground mb-2">{topic.description}</p>
+        {topic.outcomes && topic.outcomes.length > 0 && (
+          <div className="mb-2">
+            <span className="font-medium text-xs text-muted-foreground">Outcomes: </span>
+            <div className="flex flex-wrap gap-1 mt-1">
+              {topic.outcomes.map((outcome, idx) => (
+                <Badge key={idx} variant="secondary" className="px-2 py-0.5 text-xs">
+                  {outcome}
+                </Badge>
+              ))}
+            </div>
           </div>
-        </AccordionTrigger>
-        <AccordionContent className="pl-4">
-          <p className="text-sm text-muted-foreground mb-2">{topic.description}</p>
-          {topic.outcomes && topic.outcomes.length > 0 && (
-            <div className="mb-2">
-              <span className="font-medium text-xs text-muted-foreground">Outcomes: </span>
-              <div className="flex flex-wrap gap-1 mt-1">
-                {topic.outcomes.map((outcome, idx) => <Badge key={idx} variant="secondary" className="px-2 py-0.5 text-xs">{outcome}</Badge>)}
-              </div>
+        )}
+        {topic.example_exercises && topic.example_exercises.length > 0 && (
+          <div className="mb-2">
+            <span className="font-medium text-xs text-muted-foreground">Exercises: </span>
+            <div className="flex flex-wrap gap-1 mt-1">
+              {topic.example_exercises.map((exercise, idx) => (
+                <Badge key={idx} variant="outline" className="px-2 py-0.5 text-xs">
+                  {exercise}
+                </Badge>
+              ))}
             </div>
-          )}
-           {topic.example_exercises && topic.example_exercises.length > 0 && (
-            <div className="mb-2">
-              <span className="font-medium text-xs text-muted-foreground">Exercises: </span>
-              <div className="flex flex-wrap gap-1 mt-1">
-                {topic.example_exercises.map((exercise, idx) => <Badge key={idx} variant="outline" className="px-2 py-0.5 text-xs">{exercise}</Badge>)}
-              </div>
-            </div>
-          )}
-          {topic.helpful_references && topic.helpful_references.length > 0 && (
-            <div className="mb-2">
-              <span className="font-medium text-xs text-muted-foreground">References: </span>
-              <div className="flex flex-wrap gap-1 mt-1">
-                {topic.helpful_references.map((ref, idx) => {
-                  const canonicalSource = curriculumData.canonical_sources?.find(cs => cs.id === ref.sourceId);
-                  if (!canonicalSource) return null; // Or render a fallback
+          </div>
+        )}
+        {topic.helpful_references && topic.helpful_references.length > 0 && (
+          <div className="mb-2">
+            <span className="font-medium text-xs text-muted-foreground">References: </span>
+            <div className="flex flex-wrap gap-1 mt-1">
+              {topic.helpful_references.map((ref, idx) => {
+                const canonicalSource = curriculum.canonical_sources?.find((cs) => cs.id === ref.sourceId);
+                if (!canonicalSource) return null; // Or render a fallback
 
-                  return (
-                    <a href={canonicalSource.url} target="_blank" rel="noopener noreferrer" key={idx} 
-                       className="flex items-center text-blue-500 hover:underline text-xs"
-                       title={`${canonicalSource.title} (${canonicalSource.steward}): ${canonicalSource.short_summary}`}> {/* Tooltip */}
-                        {canonicalSource.title} <ExternalLink className="ml-1 h-3 w-3" />
-                    </a>
-                  );
-                })}
-              </div>
+                return (
+                  <a
+                    href={canonicalSource.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    key={idx}
+                    className="flex items-center text-blue-500 hover:underline text-xs"
+                    title={`${canonicalSource.title} (${canonicalSource.steward}): ${canonicalSource.short_summary}`}
+                  >
+                    {canonicalSource.title} <ExternalLink className="ml-1 h-3 w-3" />
+                  </a>
+                );
+              })}
             </div>
-          )}
+          </div>
+        )}
 
-          {/* New section for Curated Learning Materials */}
-          {topic.learning_resources && topic.learning_resources.length > 0 && (
-            <div className="mt-4">
-              <span className="font-medium text-sm">Curated Learning Materials:</span>
-              {renderLearningResources(topic.learning_resources)}
-            </div>
-          )}
-
-          {topic.subtopics && topic.subtopics.length > 0 && (
-            <div className="pl-4 border-l ml-2 mt-2">
-              <Accordion type="multiple" className="w-full">
-                {renderTopics(topic.subtopics, curriculumData, level + 1)} {/* Pass curriculumData here */}
+        <div className="mt-4 space-y-3">
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm">Resources & Assets</CardTitle>
+              <CardDescription className="text-xs">Keep long content tucked away but reachable.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <Accordion type="multiple" className="w-full space-y-2">
+                <AccordionItem value="curated">
+                  <AccordionTrigger className="text-sm font-medium">Curated resources</AccordionTrigger>
+                  <AccordionContent>
+                    {topic.learning_resources && topic.learning_resources.length > 0 ? (
+                      renderLearningResources(topic.learning_resources)
+                    ) : (
+                      <p className="text-xs text-muted-foreground">No curated resources available.</p>
+                    )}
+                  </AccordionContent>
+                </AccordionItem>
+                <AccordionItem value="generated">
+                  <AccordionTrigger className="text-sm font-medium">Generated materials</AccordionTrigger>
+                  <AccordionContent>
+                    <div className="flex flex-wrap gap-2 mb-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => summaryMutation.mutate()}
+                        disabled={summaryMutation.isPending}
+                      >
+                        {summaryMutation.isPending ? "Generating summary…" : "Generate Summary"}
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => audioMutation.mutate()}
+                        disabled={audioMutation.isPending}
+                      >
+                        {audioMutation.isPending ? "Generating audio…" : "Generate Audio Lesson"}
+                      </Button>
+                    </div>
+                    {(summaryMutation.isPending || audioMutation.isPending) && (
+                      <div className="flex items-center gap-2 mb-2">
+                        <Progress
+                          className="w-40"
+                          value={summaryMutation.isPending || audioMutation.isPending ? 60 : 100}
+                        />
+                        <span className="text-xs text-muted-foreground">
+                          {summaryMutation.isPending
+                            ? "Building summary…"
+                            : audioMutation.isPending
+                              ? "Preparing audio script…"
+                              : ""}
+                        </span>
+                      </div>
+                    )}
+                    {summaryMutation.isError && (
+                      <p className="text-xs text-red-500">Unable to generate summary right now.</p>
+                    )}
+                    {audioMutation.isError && (
+                      <p className="text-xs text-red-500">Unable to generate audio lesson right now.</p>
+                    )}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      {summaryMutation.data && (
+                        <div className="text-sm border p-2 rounded bg-muted max-h-72 overflow-auto">
+                          <div className="flex items-center justify-between mb-1">
+                            <h4 className="font-semibold">{summaryMutation.data.content?.title}</h4>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7"
+                              onClick={() => setShowSummary((prev) => !prev)}
+                            >
+                              {showSummary ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                            </Button>
+                          </div>
+                          {showSummary &&
+                            summaryMutation.data.content?.sections?.map((section: any, idx: number) => (
+                              <div key={idx} className="mb-2">
+                                <p className="font-medium">{section.heading}</p>
+                                {section.paragraphs?.map((p: string, pIdx: number) => (
+                                  <p key={pIdx} className="text-xs text-muted-foreground">
+                                    {p}
+                                  </p>
+                                ))}
+                              </div>
+                            ))}
+                        </div>
+                      )}
+                      {audioMutation.data?.audio_url && (
+                        <div className="text-sm border p-2 rounded bg-muted max-h-72 overflow-auto">
+                          <div className="flex items-center justify-between mb-1">
+                            <p className="font-semibold">Audio Lesson</p>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7"
+                              onClick={() => setShowAudio((prev) => !prev)}
+                            >
+                              {showAudio ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                            </Button>
+                          </div>
+                          {showAudio && <audio controls src={audioMutation.data.audio_url} className="w-full" />}
+                        </div>
+                      )}
+                      {!audioMutation.data?.audio_url && audioMutation.data?.content?.script && (
+                        <div className="text-sm border p-2 rounded bg-muted max-h-72 overflow-auto">
+                          <div className="flex items-center justify-between mb-1">
+                            <p className="font-semibold">Audio Script</p>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7"
+                              onClick={() => setShowAudio((prev) => !prev)}
+                            >
+                              {showAudio ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                            </Button>
+                          </div>
+                          {showAudio && (
+                            <p className="text-xs text-muted-foreground whitespace-pre-wrap">
+                              {audioMutation.data.content.script}
+                            </p>
+                          )}
+                        </div>
+                      )}
+                      {!summaryMutation.data && !audioMutation.data && !summaryMutation.isPending && !audioMutation.isPending && (
+                        <p className="text-xs text-muted-foreground">
+                          Generate a summary or audio lesson to see it here.
+                        </p>
+                      )}
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
               </Accordion>
-            </div>
-          )}
-        </AccordionContent>
-      </AccordionItem>
-    ));
-  };
+            </CardContent>
+          </Card>
+        </div>
+
+        {topic.subtopics && topic.subtopics.length > 0 && (
+          <div className="pl-4 border-l ml-2 mt-2">
+            <Accordion type="multiple" className="w-full">
+              {topic.subtopics.map((subtopic) => (
+                <TopicItem
+                  key={subtopic.id}
+                  topic={subtopic}
+                  curriculum={curriculum}
+                  level={level + 1}
+                  languageSlug={languageSlug}
+                />
+              ))}
+            </Accordion>
+          </div>
+        )}
+      </AccordionContent>
+    </AccordionItem>
+  );
+}
+
+export function CurriculumBreakdown({ curriculum }: { curriculum: CurriculumDTO }) {
+  const languageSlug = curriculum.language;
 
   return (
     <div className="mb-8">
@@ -157,7 +338,15 @@ export function CurriculumBreakdown({ curriculum }: { curriculum: CurriculumDTO 
             </CardHeader>
             <CardContent>
               <Accordion type="multiple" className="w-full">
-                {renderTopics(levelData.topics, curriculum)} {/* Pass curriculum here */}
+                {levelData.topics.map((topic) => (
+                  <TopicItem
+                    key={topic.id}
+                    topic={topic}
+                    curriculum={curriculum}
+                    level={0}
+                    languageSlug={languageSlug}
+                  />
+                ))}
               </Accordion>
             </CardContent>
           </Card>

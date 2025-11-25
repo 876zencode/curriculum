@@ -93,3 +93,19 @@ export interface CurriculumConfig {
   trustProfiles?: Record<string, unknown>;
   [key: string]: unknown;
 }
+
+export type GeneratedAssetType =
+  | "summary_article"
+  | "audio_lesson"
+  | "quiz";
+
+export interface GeneratedAssetDTO {
+  id: string;
+  language_slug: string;
+  topic_id: string;
+  asset_type: GeneratedAssetType;
+  content: any;
+  audio_url?: string;
+  created_at: string;
+  updated_at: string;
+}
