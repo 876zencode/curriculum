@@ -1,20 +1,21 @@
 import { Link } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { useEffect, useState } from "react";
 import { getLanguages } from "@/lib/api";
-import type { LanguageOption } from "@/lib/types";
 
 export function HomePage() {
-  const [languages, setLanguages] = useState<LanguageOption[]>([]);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    getLanguages()
-      .then(setLanguages)
-      .catch((err) => setError(err.message ?? "Unable to load languages"));
-  }, []);
+  const {
+    data: languages = [],
+    isLoading,
+    error,
+  } = useQuery({
+    queryKey: ["languages"],
+    queryFn: getLanguages,
+    staleTime: Infinity, // avoid refetching when navigating back
+    refetchOnWindowFocus: false,
+  });
 
   const languageDescriptions: { [key: string]: string } = {
     java: "The leading language for enterprise software, Android development, and large-scale systems.",
@@ -30,8 +31,12 @@ export function HomePage() {
 
       {error && (
         <div className="text-red-500 text-center mb-4 text-sm">
-          {error}
+          {error.message ?? "Unable to load languages"}
         </div>
+      )}
+
+      {isLoading && (
+        <div className="text-center text-sm text-muted-foreground mb-4">Loading languages...</div>
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
