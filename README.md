@@ -37,7 +37,7 @@ The frontend is a React application that uses Vite and shadcn/ui. It has the fol
 2.  Create a `.env` file with the following variables:
     ```
     VITE_BACKEND_URL=http://localhost:8080/api
-    VITE_CURRICULUM_DATA_URL=/curriculum-configurations
+    VITE_CURRICULUM_DATA_URL=https://trustdash.replit.app/api/configuration
     VITE_LLM_PROXY_URL=/api/llm-proxy              # points to a server/edge function that holds the OpenAI key
     VITE_OPENAI_MODEL=gpt-4o-mini                  # safe to expose
     VITE_SUPABASE_URL=<your Supabase project URL>  # public
