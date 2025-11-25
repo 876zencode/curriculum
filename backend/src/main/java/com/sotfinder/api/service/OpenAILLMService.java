@@ -24,9 +24,9 @@ public class OpenAILLMService implements LLMService {
     private final ObjectMapper objectMapper;
     private final ResourceLoader resourceLoader;
 
-    @Value("${LLM_API_KEY}")
+    @Value("${llm-api-key}") // Spring Boot property name
     private String llmApiKey;
-    @Value("${LLM_MODEL}")
+    @Value("${llm-model}") // Spring Boot property name
     private String llmModel;
 
     public OpenAILLMService(ObjectMapper objectMapper, ResourceLoader resourceLoader) {
