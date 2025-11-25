@@ -13,6 +13,8 @@ primary_region = 'iad'
   # Replace the URL with your actual Vercel frontend URL.
   # You can add multiple URLs separated by a comma.
   CORS_ALLOWED_ORIGINS = "https://curriculum-steel.vercel.app/,http://localhost:5173"
+  CURRICULUM_DATA_URL = "https://trustdash.replit.app/api/configurations"
+  LLM_MODEL = "gpt-4o"
 
 [http_service]
   internal_port = 8080

@@ -24,9 +24,9 @@ public class OpenAILLMService implements LLMService {
     private final ObjectMapper objectMapper;
     private final ResourceLoader resourceLoader;
 
-    @Value("${llm-api-key}") // Spring Boot property name
+    @Value("${LLM_API_KEY}")
     private String llmApiKey;
-    @Value("${llm-model}") // Spring Boot property name
+    @Value("${LLM_MODEL}")
     private String llmModel;
 
     public OpenAILLMService(ObjectMapper objectMapper, ResourceLoader resourceLoader) {
@@ -63,11 +63,12 @@ public class OpenAILLMService implements LLMService {
                 // More robust JSON extraction: find the first '{' and last '}'
                 int firstBrace = jsonResponse.indexOf('{');
                 int lastBrace = jsonResponse.lastIndexOf('}');
-                
+
                 if (firstBrace != -1 && lastBrace != -1 && lastBrace > firstBrace) {
                     jsonResponse = jsonResponse.substring(firstBrace, lastBrace + 1);
                 } else {
-                    // If no valid JSON object found, try stripping markdown code block anyway as a fallback
+                    // If no valid JSON object found, try stripping markdown code block anyway as a
+                    // fallback
                     if (jsonResponse.startsWith("```json")) {
                         jsonResponse = jsonResponse.substring(jsonResponse.indexOf("```json") + 7);
                         if (jsonResponse.endsWith("```")) {
@@ -79,7 +80,8 @@ public class OpenAILLMService implements LLMService {
 
                 return objectMapper.readValue(jsonResponse, CurriculumDTO.class);
             } else {
-                throw new RuntimeException("Failed to generate curriculum from LLM. Status code: " + response.statusCode() + ", body: " + response.body());
+                throw new RuntimeException("Failed to generate curriculum from LLM. Status code: "
+                        + response.statusCode() + ", body: " + response.body());
             }
 
         } catch (IOException | InterruptedException e) {

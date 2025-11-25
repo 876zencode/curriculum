@@ -25,7 +25,7 @@ public class JsonDataService {
     private final ObjectMapper objectMapper;
     private final ConcurrentHashMap<String, JsonNode> curriculumCache = new ConcurrentHashMap<>();
 
-    @Value("${curriculum-data-url}") // Spring Boot property name
+    @Value("${CURRICULUM_DATA_URL}") // Spring Boot property name
     private String curriculumDataUrl;
 
     public JsonDataService(ObjectMapper objectMapper) {

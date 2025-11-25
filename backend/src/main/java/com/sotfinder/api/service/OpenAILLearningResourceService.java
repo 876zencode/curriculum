@@ -25,9 +25,9 @@ public class OpenAILLearningResourceService implements LearningResourceService {
     private final ObjectMapper objectMapper;
     private final ResourceLoader resourceLoader;
 
-    @Value("${llm-api-key}") // Spring Boot property name
+    @Value("${LLM_API_KEY}")
     private String llmApiKey;
-    @Value("${llm-model}") // Spring Boot property name
+    @Value("${LLM_MODEL}")
     private String llmModel;
 
     public OpenAILLearningResourceService(ObjectMapper objectMapper, ResourceLoader resourceLoader) {
