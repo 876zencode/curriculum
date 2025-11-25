@@ -85,6 +85,8 @@ function TopicItem({
 }) {
   const [showSummary, setShowSummary] = useState(true);
   const [showAudio, setShowAudio] = useState(true);
+  const [showQuiz, setShowQuiz] = useState(true);
+  const [quizAnswers, setQuizAnswers] = useState<Record<number, string>>({});
   const summaryMutation = useMutation<GeneratedAssetDTO, Error>({
     mutationFn: () => getGeneratedAssetForTopic(languageSlug, topic.id, "summary_article"),
     onSuccess: () => setShowSummary(true),
@@ -93,6 +95,11 @@ function TopicItem({
   const audioMutation = useMutation<GeneratedAssetDTO, Error>({
     mutationFn: () => getGeneratedAssetForTopic(languageSlug, topic.id, "audio_lesson"),
     onSuccess: () => setShowAudio(true),
+  });
+
+  const quizMutation = useMutation<GeneratedAssetDTO, Error>({
+    mutationFn: () => getGeneratedAssetForTopic(languageSlug, topic.id, "quiz"),
+    onSuccess: () => setShowQuiz(true),
   });
 
   return (
@@ -164,7 +171,9 @@ function TopicItem({
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm">Resources & Assets</CardTitle>
-              <CardDescription className="text-xs">Keep long content tucked away but reachable.</CardDescription>
+              <CardDescription className="text-xs">
+                Dive into curated links plus AI-generated summaries, audio lessons, and quizzes tailored to this topic.
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
               <Accordion type="multiple" className="w-full space-y-2">
@@ -198,19 +207,31 @@ function TopicItem({
                       >
                         {audioMutation.isPending ? "Generating audio…" : "Generate Audio Lesson"}
                       </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => quizMutation.mutate()}
+                        disabled={quizMutation.isPending}
+                      >
+                        {quizMutation.isPending ? "Generating quiz…" : "Generate Quiz"}
+                      </Button>
                     </div>
-                    {(summaryMutation.isPending || audioMutation.isPending) && (
+                    {(summaryMutation.isPending || audioMutation.isPending || quizMutation.isPending) && (
                       <div className="flex items-center gap-2 mb-2">
                         <Progress
                           className="w-40"
-                          value={summaryMutation.isPending || audioMutation.isPending ? 60 : 100}
+                          value={
+                            summaryMutation.isPending || audioMutation.isPending || quizMutation.isPending ? 60 : 100
+                          }
                         />
                         <span className="text-xs text-muted-foreground">
                           {summaryMutation.isPending
                             ? "Building summary…"
                             : audioMutation.isPending
                               ? "Preparing audio script…"
-                              : ""}
+                              : quizMutation.isPending
+                                ? "Writing quiz…"
+                                : ""}
                         </span>
                       </div>
                     )}
@@ -220,75 +241,175 @@ function TopicItem({
                     {audioMutation.isError && (
                       <p className="text-xs text-red-500">Unable to generate audio lesson right now.</p>
                     )}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      {summaryMutation.data && (
-                        <div className="text-sm border p-2 rounded bg-muted max-h-72 overflow-auto">
-                          <div className="flex items-center justify-between mb-1">
-                            <h4 className="font-semibold">{summaryMutation.data.content?.title}</h4>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-7 w-7"
-                              onClick={() => setShowSummary((prev) => !prev)}
-                            >
-                              {showSummary ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                            </Button>
-                          </div>
-                          {showSummary &&
-                            summaryMutation.data.content?.sections?.map((section: any, idx: number) => (
-                              <div key={idx} className="mb-2">
-                                <p className="font-medium">{section.heading}</p>
-                                {section.paragraphs?.map((p: string, pIdx: number) => (
-                                  <p key={pIdx} className="text-xs text-muted-foreground">
-                                    {p}
-                                  </p>
-                                ))}
+                    {quizMutation.isError && (
+                      <p className="text-xs text-red-500">Unable to generate quiz right now.</p>
+                    )}
+                    <Accordion type="single" collapsible className="space-y-2">
+                      <AccordionItem value="summary-material">
+                        <AccordionTrigger className="text-sm font-medium">Summary</AccordionTrigger>
+                        <AccordionContent>
+                          {summaryMutation.data ? (
+                            <div className="text-sm border p-2 rounded bg-muted max-h-72 overflow-auto">
+                              <div className="flex items-center justify-between mb-1">
+                                <h4 className="font-semibold">{summaryMutation.data.content?.title}</h4>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-7 w-7"
+                                  onClick={() => setShowSummary((prev) => !prev)}
+                                >
+                                  {showSummary ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                </Button>
                               </div>
-                            ))}
-                        </div>
-                      )}
-                      {audioMutation.data?.audio_url && (
-                        <div className="text-sm border p-2 rounded bg-muted max-h-72 overflow-auto">
-                          <div className="flex items-center justify-between mb-1">
-                            <p className="font-semibold">Audio Lesson</p>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-7 w-7"
-                              onClick={() => setShowAudio((prev) => !prev)}
-                            >
-                              {showAudio ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                            </Button>
-                          </div>
-                          {showAudio && <audio controls src={audioMutation.data.audio_url} className="w-full" />}
-                        </div>
-                      )}
-                      {!audioMutation.data?.audio_url && audioMutation.data?.content?.script && (
-                        <div className="text-sm border p-2 rounded bg-muted max-h-72 overflow-auto">
-                          <div className="flex items-center justify-between mb-1">
-                            <p className="font-semibold">Audio Script</p>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-7 w-7"
-                              onClick={() => setShowAudio((prev) => !prev)}
-                            >
-                              {showAudio ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                            </Button>
-                          </div>
-                          {showAudio && (
-                            <p className="text-xs text-muted-foreground whitespace-pre-wrap">
-                              {audioMutation.data.content.script}
-                            </p>
+                              {showSummary &&
+                                summaryMutation.data.content?.sections?.map((section: any, idx: number) => (
+                                  <div key={idx} className="mb-2">
+                                    <p className="font-medium">{section.heading}</p>
+                                    {section.paragraphs?.map((p: string, pIdx: number) => (
+                                      <p key={pIdx} className="text-xs text-muted-foreground">
+                                        {p}
+                                      </p>
+                                    ))}
+                                  </div>
+                                ))}
+                            </div>
+                          ) : (
+                            <p className="text-xs text-muted-foreground">Generate a summary to see it here.</p>
                           )}
-                        </div>
-                      )}
-                      {!summaryMutation.data && !audioMutation.data && !summaryMutation.isPending && !audioMutation.isPending && (
-                        <p className="text-xs text-muted-foreground">
-                          Generate a summary or audio lesson to see it here.
-                        </p>
-                      )}
-                    </div>
+                        </AccordionContent>
+                      </AccordionItem>
+                      <AccordionItem value="audio-material">
+                        <AccordionTrigger className="text-sm font-medium">Audio</AccordionTrigger>
+                        <AccordionContent>
+                          {audioMutation.data?.audio_url ? (
+                            <div className="text-sm border p-2 rounded bg-muted max-h-72 overflow-auto">
+                              <div className="flex items-center justify-between mb-1">
+                                <p className="font-semibold">Audio Lesson</p>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-7 w-7"
+                                  onClick={() => setShowAudio((prev) => !prev)}
+                                >
+                                  {showAudio ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                </Button>
+                              </div>
+                              {showAudio && <audio controls src={audioMutation.data.audio_url} className="w-full" />}
+                            </div>
+                          ) : audioMutation.data?.content?.script ? (
+                            <div className="text-sm border p-2 rounded bg-muted max-h-72 overflow-auto">
+                              <div className="flex items-center justify-between mb-1">
+                                <p className="font-semibold">Audio Script</p>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-7 w-7"
+                                  onClick={() => setShowAudio((prev) => !prev)}
+                                >
+                                  {showAudio ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                </Button>
+                              </div>
+                              {showAudio && (
+                                <p className="text-xs text-muted-foreground whitespace-pre-wrap">
+                                  {audioMutation.data.content.script}
+                                </p>
+                              )}
+                            </div>
+                          ) : (
+                            <p className="text-xs text-muted-foreground">Generate an audio lesson to see it here.</p>
+                          )}
+                        </AccordionContent>
+                      </AccordionItem>
+                      <AccordionItem value="quiz-material">
+                        <AccordionTrigger className="text-sm font-medium">Quiz</AccordionTrigger>
+                        <AccordionContent>
+                          {quizMutation.data ? (
+                            <div className="text-sm border p-2 rounded bg-muted max-h-96 overflow-auto space-y-2">
+                              <div className="flex items-center justify-between">
+                                <div>
+                                  <p className="font-semibold">{quizMutation.data.content?.title ?? "Quiz"}</p>
+                                  <p className="text-xs text-muted-foreground">
+                                    Tap an answer to check yourself.
+                                  </p>
+                                </div>
+                                <div className="flex gap-2">
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => setShowQuiz((prev) => !prev)}
+                                  >
+                                    {showQuiz ? "Hide" : "Show"}
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => {
+                                      setShowQuiz(true);
+                                      setQuizAnswers({});
+                                    }}
+                                  >
+                                    Reset
+                                  </Button>
+                                </div>
+                              </div>
+                              {showQuiz && Array.isArray(quizMutation.data.content?.questions) ? (
+                                <div className="space-y-3">
+                                  {quizMutation.data.content.questions.map((q: any, idx: number) => {
+                                    const selected = quizAnswers[idx];
+                                    const isCorrect = selected && selected === q.correct_answer;
+                                    return (
+                                      <div key={idx} className="border rounded p-2 bg-background space-y-2">
+                                        <p className="text-sm font-medium">{q.question}</p>
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                          {Array.isArray(q.choices) &&
+                                            q.choices.map((choice: string, cIdx: number) => {
+                                              const isSelected = selected === choice;
+                                              return (
+                                                <Button
+                                                  key={cIdx}
+                                                  variant={isSelected ? "default" : "outline"}
+                                                  className="justify-start text-left"
+                                                  onClick={() =>
+                                                    setQuizAnswers((prev) => ({ ...prev, [idx]: choice }))
+                                                  }
+                                                >
+                                                  {choice}
+                                                </Button>
+                                              );
+                                            })}
+                                        </div>
+                                        <p
+                                          className={`text-xs ${
+                                            selected
+                                              ? isCorrect
+                                                ? "text-green-600"
+                                                : "text-red-600"
+                                              : "text-muted-foreground"
+                                          }`}
+                                        >
+                                          {selected
+                                            ? isCorrect
+                                              ? "Correct!"
+                                              : `Incorrect. Answer: ${q.correct_answer}`
+                                            : "Select an option to check your answer."}
+                                        </p>
+                                        {q.explanation && (
+                                          <p className="text-xs text-muted-foreground">{q.explanation}</p>
+                                        )}
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              ) : (
+                                showQuiz && <p className="text-xs text-muted-foreground">No questions returned.</p>
+                              )}
+                            </div>
+                          ) : (
+                            <p className="text-xs text-muted-foreground">Generate a quiz to see it here.</p>
+                          )}
+                        </AccordionContent>
+                      </AccordionItem>
+                    </Accordion>
                   </AccordionContent>
                 </AccordionItem>
               </Accordion>
