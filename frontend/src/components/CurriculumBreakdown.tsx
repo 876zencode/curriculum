@@ -1,4 +1,4 @@
-import { CurriculumDTO, LearningLevelDTO, TopicDTO, LearningResourceDTO } from "@/lib/api";
+import { CurriculumDTO, LearningLevelDTO, TopicDTO, LearningResourceDTO } from "@/lib/types";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button"; // Added Button import

@@ -4,12 +4,16 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Separator } from "@/components/ui/separator";
 import { useEffect, useState } from "react";
 import { getLanguages } from "@/lib/api";
+import type { LanguageOption } from "@/lib/types";
 
 export function HomePage() {
-  const [languages, setLanguages] = useState<string[]>([]);
+  const [languages, setLanguages] = useState<LanguageOption[]>([]);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    getLanguages().then(setLanguages);
+    getLanguages()
+      .then(setLanguages)
+      .catch((err) => setError(err.message ?? "Unable to load languages"));
   }, []);
 
   const languageDescriptions: { [key: string]: string } = {
@@ -24,15 +28,21 @@ export function HomePage() {
         Select a programming language or framework to explore its canonical learning path and curated curriculum.
       </p>
 
+      {error && (
+        <div className="text-red-500 text-center mb-4 text-sm">
+          {error}
+        </div>
+      )}
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {languages.map((lang) => (
-          <Card key={lang}>
+          <Card key={lang.slug}>
             <CardHeader>
-              <CardTitle>{lang.charAt(0).toUpperCase() + lang.slice(1)}</CardTitle>
-              <CardDescription>{languageDescriptions[lang.toLowerCase()] || "A popular programming language."}</CardDescription>
+              <CardTitle>{lang.label || lang.slug.charAt(0).toUpperCase() + lang.slug.slice(1)}</CardTitle>
+              <CardDescription>{languageDescriptions[lang.slug.toLowerCase()] || "A popular programming language."}</CardDescription>
             </CardHeader>
             <CardContent>
-              <Link to={`/language/${lang}`}>
+              <Link to={`/language/${lang.slug}`}>
                 <Button className="w-full">View Curriculum</Button>
               </Link>
             </CardContent>

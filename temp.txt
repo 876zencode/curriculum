@@ -1,52 +1,140 @@
-You already have full context of the Canonical Curriculum Explorer application (Spring Boot backend + React frontend with shadcn/UI). Extend the existing system so that, after generating canonical sources and a curriculum using the JSON ingestion + LLM, the application also generates a curated list of high-quality learning materials (documentation, videos, articles, GitHub repos) for every curriculum subtopic.
+You are refactoring an existing app. The codebase is in the attached archive (Archive.zip).
 
-Use the existing trust profile (authority, recency, clarity, depth) to evaluate and select resources.
+## High-level goal
 
-BACKEND REQUIREMENTS:
-1. Add a new `LearningResourceService`. For each curriculum subtopic:
-   - Use a new LLM call to generate 5–10 authoritative resources.
-   - Use the trust profile weights from the JSON to influence the LLM.
-   - Resources may include: official documentation, verified tutorials, YouTube videos from authoritative instructors, GitHub repos, books, and high-quality technical articles.
-   - Normalize into DTOs.
+Transform this into a **frontend-only** application where **React/TypeScript handles all business logic**, and **there is no Java/Spring Boot dependency at runtime**.
 
-2. Add endpoints:
-   GET /api/curriculum/{language}/learning-resources
+Right now the app is split into:
 
-3. Update the unified response so that:
-   - Canonical Sources
-   - Curriculum Breakdown
-   - Learning Resources
-   are accessible through one aggregated API call.
+- A **Java Spring Boot backend** (under something like `backend/` or `src/main/java/...`) that:
+  - Fetches curriculum configuration JSON from a remote URL (`curriculumDataUrl`).
+  - Normalizes language names to slugs.
+  - Calls OpenAI (LLM) to generate a curriculum (`CurriculumDTO`) and topic-level learning resources.
+  - Periodically regenerates and stores the result in Postgres via JPA entities.
+  - Exposes REST endpoints like:
+    - `GET /api/curriculum/metadata`
+    - `GET /api/curriculum/{language}/curriculum`
 
-4. Implement clean Java OOP design:
-   - Records for DTOs
-   - Interfaces for services
-   - LLMService reused with different prompt templates
-   - LLM prompt templates stored in `/prompts` folder
-   - Trust profile applied consistently
+- A **React + TypeScript frontend** (Vite + Tailwind + shadcn/ui) that:
+  - Calls those endpoints through helper functions in `lib/api.ts` (or similar).
+  - Renders:
+    - Home page with a grid of languages.
+    - A detailed “Language Curriculum” page (`LanguageCurriculumPage`) that uses `CurriculumBreakdown` and other UI components.
+  - Uses components such as:
+    - `CurriculumBreakdown`
+    - `ResultCard` (not fully wired)
+    - `ConfidenceBar`
+    - Various DTO types for `Curriculum`, `LearningLevel`, `Topic`, `LearningResource`, etc.
 
-FRONTEND REQUIREMENTS:
-1. In `/language/{languageName}`, add a new section:
-   “Curated Learning Materials”
-   Display the learning materials grouped by curriculum topic → subtopic.
+I want you to **remove the backend dependency** and make the frontend app self-contained.
 
-2. Use shadcn components:
-   - Accordion for topics
-   - Cards for resource items
-   - Icons for resource type (video, article, docs, GitHub)
+---
 
-3. No hard-coded resources. All data must come from:
-   - canonical sources endpoint
-   - curriculum endpoint
-   - learning-resources endpoint
+## New architecture requirements
 
-4. Add loading states and skeletons.
+1. **No Java/Spring Boot at runtime**
+   - All Java, JPA, Spring Boot, Postgres persistence, scheduled jobs, and REST controllers should be removed from the “live” stack.
+   - It’s fine to leave the backend folder in the repo temporarily if needed, but the final app must not depend on it to run.
 
-DELIVERABLES:
-- Updated Java backend code for LearningResourceService, controllers, DTOs, LLM integration.
-- Updated React components/pages to render the new “Curated Learning Materials” section.
-- Refactored unified API response.
-- Code examples of prompt templates for the LLM that generate high-authority, pedagogically sound resource lists.
-- Final merged example demonstrating Java as the proof of concept.
+2. **React/TypeScript must handle all logic**
+   - Fetch the same curriculum config JSON that `JsonDataService` currently loads from `curriculumDataUrl`, but from the browser instead.
+   - Re-implement the curriculum generation logic in TypeScript:
+     - Generate a structured curriculum for a given language from the curriculum config (equivalent to what `LanguageCurriculumService.generateCurriculumWithLLM(...)` does).
+     - For each topic and subtopic, call an OpenAI model to generate curated learning resources (equivalent to `OpenAILLearningResourceService`).
+   - Implement this logic in a new frontend module, e.g. `src/lib/curriculumEngine.ts`.
 
-Generate all updated file structures, code, and glue logic for both backend and frontend.
+3. **OpenAI calls**
+   - Move the OpenAI calls that currently happen in Java (`OpenAILLMService`, `OpenAILLearningResourceService`) into TypeScript.
+   - Factor them into reusable functions such as:
+     - `callOpenAiChatJSON(prompt: string) -> any`
+     - `generateCurriculum(languageSlug: string): Promise<Curriculum>`
+     - `generateLearningResources(language: string, subtopicTitle: string, trustProfile?: any): Promise<LearningResource[]>`
+   - Use environment variables from Vite, for example:
+     - `VITE_OPENAI_API_KEY`
+     - `VITE_OPENAI_MODEL`
+     - `VITE_CURRICULUM_DATA_URL`
+   - IMPORTANT: Assume that in production, these requests may go through a small proxy (so keep the OpenAI call in a single helper that can later be swapped to hit a proxy endpoint instead). For now you can call the OpenAI HTTP API directly using `fetch`.
+
+4. **Curriculum config fetching**
+   - Re-create the behavior of `JsonDataService` in TypeScript:
+     - Fetch `VITE_CURRICULUM_DATA_URL` and cache it in memory.
+     - Implement the same **language key normalization** that the Java service used: lowercasing, stripping phrases like `"developer path"`, `"developer"`, `"engineer path"`, `"frontend"`, `"backend"`, `"fullstack"`, etc., and replacing non-alphanumeric characters with `-`.
+   - Provide functions like:
+     - `getLanguagesFromConfig(): Promise<{ slug: string; label: string }[]>`
+     - `getCurriculumConfigForLanguage(slug: string): Promise<any>`
+
+5. **Wire the frontend to the new engine**
+   - Update `lib/api.ts` (or equivalent) so that:
+     - `getLanguages()` uses `getLanguagesFromConfig()` instead of hitting `/api/curriculum/metadata`.
+     - `getCurriculum(slug)`:
+       - Calls `generateCurriculum(slug)` to build the base curriculum.
+       - Calls a helper like `enrichCurriculumWithResources(slug, curriculum, trustProfiles)` to recursively attach learning resources to all topics.
+       - Uses an internal in-memory cache (and React Query) to avoid refetching too often.
+   - Ensure the existing pages (`HomePage`, `LanguageCurriculumPage`, `CurriculumBreakdown`) continue to work with the new data shape.
+
+6. **Types and DTOs**
+   - Centralize TypeScript types that mirror the current `CurriculumDTO` and related DTOs.
+   - Confirm that types used in `CurriculumBreakdown` and other components are consistent with whatever the new OpenAI JSON responses are.
+   - If necessary, add runtime guards/normalizers to tolerate slightly imperfect model output.
+
+7. **Remove backend wiring from the frontend**
+   - Remove any references to `API_BASE_URL` or `/api/curriculum/...` in the frontend.
+   - Make sure the app can be built and run as a pure static SPA:
+     - `npm run build` (or `pnpm build`) should succeed with no Java server.
+
+8. **Optional but nice to have**
+   - Add simple `localStorage` caching for generated curricula keyed by `{languageSlug}:{configHash}` so that if the curriculum config hasn’t changed, we reuse previously generated content.
+   - If there are currently unused components like `ResultCard` and “Saved Sources”, leave them in place but make sure they compile and are consistent with the new types.
+
+---
+
+## Concrete tasks for you (Codex)
+
+1. **Locate the backend portions**:
+   - Find Spring Boot controllers, services, entities, and repos related to curriculum:
+     - `CurriculumController`
+     - `LanguageCurriculumService`
+     - `CurriculumDataLoaderService`
+     - `JsonDataService`
+     - `OpenAILLMService`
+     - `OpenAILLearningResourceService`
+     - `CurriculumEntity`, `TopicEntity`, `LearningResourceEntity`, etc.
+   - Do NOT modify them further; we will no longer rely on them at runtime.
+
+2. **Create new frontend engine module**
+   - Add a new file, e.g. `src/lib/curriculumEngine.ts`.
+   - Implement:
+     - `fetchCurriculumConfig()`
+     - `normalizeLanguageKey(raw: string): string`
+     - `getLanguagesFromConfig()`
+     - `getCurriculumConfigForLanguage(slug: string)`
+     - `callOpenAiChatJSON(prompt: string)`
+     - `generateCurriculum(languageSlug: string)`
+     - `generateLearningResources(language: string, subtopicTitle: string, trustProfile?: any)`
+     - `enrichCurriculumWithResources(languageSlug: string, curriculum: Curriculum, trustProfiles?: Record<string, any>)`
+
+3. **Refactor API helpers**
+   - Update `lib/api.ts` so that `getLanguages()` and `getCurriculum(slug)` call the new engine instead of the Java backend.
+   - Ensure existing React Query hooks still work.
+
+4. **Adjust components if needed**
+   - Make any necessary changes to:
+     - `HomePage`
+     - `LanguageCurriculumPage`
+     - `CurriculumBreakdown`
+   - Ensure they compile, render correctly, and use the updated types.
+
+5. **Clean up backend references**
+   - Remove any build scripts, env vars, or config that assume a running Java backend for the main SPA.
+   - It should be possible to deploy this as a static Vite build with only environment variables for:
+     - `VITE_OPENAI_API_KEY`
+     - `VITE_OPENAI_MODEL`
+     - `VITE_CURRICULUM_DATA_URL`
+
+6. **Finally, show me the diff**
+   - After refactoring, show a summary of:
+     - New files added (especially `curriculumEngine.ts` or equivalent).
+     - Frontend files modified and a brief description of what changed.
+     - Any backend files you consider safe to delete or archive.
+
+Follow these instructions step-by-step. Focus on making the frontend fully self-sufficient while preserving the current UX and data structure as much as possible.

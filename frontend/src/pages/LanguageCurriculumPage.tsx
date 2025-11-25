@@ -1,13 +1,13 @@
 import { useParams, Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { getCurriculum, CurriculumDTO, CanonicalSourceDTO } from "@/lib/api"; // Added CanonicalSourceDTO
+import { getCurriculum } from "@/lib/api";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { ArrowLeft, ExternalLink } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { CurriculumBreakdown } from "@/components/CurriculumBreakdown";
 // Removed import for LearningMaterialsSection
 import { Skeleton } from "@/components/ui/skeleton";
+import type { CurriculumDTO } from "@/lib/types";
 
 export function LanguageCurriculumPage() {
   const { slug } = useParams<{ slug: string }>();

@@ -1,5 +1,5 @@
 import { Badge } from "@/components/ui/badge";
-import { MetadataDTO } from "@/lib/api";
+import { MetadataDTO } from "@/lib/types";
 
 interface MetadataTagsProps {
   metadata: MetadataDTO;

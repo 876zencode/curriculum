@@ -12,9 +12,14 @@ export default defineConfig({
   },
   server: {
     proxy: {
-      '/api': {
-        target: 'http://localhost:8080',
+      "/api": {
+        target: "http://localhost:8080",
         changeOrigin: true,
+      },
+      "/curriculum-configurations": {
+        target: "https://trustdash.replit.app",
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/curriculum-configurations/, "/api/configurations"),
       },
     },
   },

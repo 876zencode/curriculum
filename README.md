@@ -37,6 +37,8 @@ The frontend is a React application that uses Vite and shadcn/ui. It has the fol
 2.  Create a `.env` file with the following variables:
     ```
     VITE_BACKEND_URL=http://localhost:8080/api
+    VITE_SUPABASE_URL=<your Supabase project URL>
+    VITE_SUPABASE_ANON_KEY=<your Supabase anon key>
     ```
 3.  Install the dependencies using the following command:
     ```
@@ -46,6 +48,17 @@ The frontend is a React application that uses Vite and shadcn/ui. It has the fol
     ```
     npm run dev
     ```
+
+### Supabase cache table
+
+Create a `curricula` table in Supabase with at least these columns so the frontend can read/write cache entries:
+
+```
+language_slug text primary key,
+curriculum jsonb not null,
+config_hash text,
+updated_at timestamptz default now()
+```
 
 ## How to run the application
 
