@@ -3,6 +3,8 @@ package com.sotfinder.api.service;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sotfinder.api.language.dto.LearningResourceDTO;
+
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.ResourceLoader;
 import org.springframework.stereotype.Service;
@@ -23,15 +25,16 @@ public class OpenAILLearningResourceService implements LearningResourceService {
     private final ObjectMapper objectMapper;
     private final ResourceLoader resourceLoader;
 
+    @Value("${LLM_API_KEY}")
     private String llmApiKey;
+    @Value("${LLM_MODEL}")
     private String llmModel;
 
     public OpenAILLearningResourceService(ObjectMapper objectMapper, ResourceLoader resourceLoader) {
         this.httpClient = HttpClient.newHttpClient();
         this.objectMapper = objectMapper;
         this.resourceLoader = resourceLoader;
-        this.llmApiKey = System.getProperty("LLM_API_KEY");
-        this.llmModel = System.getProperty("LLM_MODEL");
+        // llmApiKey and llmModel are now injected by Spring via @Value
     }
 
     @Override

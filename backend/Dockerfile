@@ -32,4 +32,4 @@ COPY --from=builder /app/target/*.jar app.jar
 EXPOSE 8080
 
 # Run the application
-ENTRYPOINT ["java", "-Dcurriculum.data.url=https://trustdash.replit.app/api/configurations", "-DLLM_API_KEY=<your-openai-api-key>", "-DLLM_MODEL=gpt-3.5-turbo", "-jar", "app.jar"]
+ENTRYPOINT ["java", "-jar", "app.jar"]

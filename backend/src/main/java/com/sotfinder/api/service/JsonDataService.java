@@ -2,6 +2,8 @@ package com.sotfinder.api.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
@@ -23,12 +25,13 @@ public class JsonDataService {
     private final ObjectMapper objectMapper;
     private final ConcurrentHashMap<String, JsonNode> curriculumCache = new ConcurrentHashMap<>();
 
+    @Value("${CURRICULUM_DATA_URL}")
     private String curriculumDataUrl;
 
     public JsonDataService(ObjectMapper objectMapper) {
         this.httpClient = HttpClient.newHttpClient();
         this.objectMapper = objectMapper;
-        this.curriculumDataUrl = System.getProperty("CURRICULUM_DATA_URL");
+        // curriculumDataUrl is now injected by Spring via @Value
     }
 
     @PostConstruct
