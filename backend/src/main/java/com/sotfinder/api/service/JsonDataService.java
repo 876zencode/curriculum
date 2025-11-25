@@ -38,6 +38,11 @@ public class JsonDataService {
 
     @Scheduled(fixedRate = 300000) // 5 minutes
     public void fetchCurriculumData() {
+        if (curriculumDataUrl == null) {
+            System.err.println("JsonDataService: curriculumDataUrl is null. Cannot fetch curriculum data.");
+            return;
+        }
+        System.out.println("JsonDataService: Attempting to fetch curriculum data from: " + curriculumDataUrl);
         try {
             HttpRequest request = HttpRequest.newBuilder()
                     .uri(URI.create(curriculumDataUrl))
@@ -56,14 +61,14 @@ public class JsonDataService {
                         }
                     }
                 } else {
-                    // Handle non-array root node if necessary, or throw an error
-                    // For now, let's assume it's always an array as per the curl output
+                    System.err.println("JsonDataService: Fetched data is not a JSON array as expected.");
                 }
             } else {
-                // Handle non-200 responses
+                System.err.println("JsonDataService: Failed to fetch curriculum data. Status code: " + response.statusCode() + ", body: " + response.body());
             }
         } catch (IOException | InterruptedException e) {
-            // Handle exceptions
+            System.err.println("JsonDataService: Exception while fetching curriculum data: " + e.getMessage());
+            e.printStackTrace();
         }
     }
 
@@ -91,6 +96,8 @@ public class JsonDataService {
     }
 
     public Set<String> getLanguages() {
-        return curriculumCache.keySet();
+        Set<String> languages = curriculumCache.keySet();
+        System.out.println("JsonDataService: getLanguages() returning " + languages.size() + " languages.");
+        return languages;
     }
 }
