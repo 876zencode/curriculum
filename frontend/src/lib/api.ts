@@ -144,9 +144,15 @@ async function generateAndStoreCurriculum(
     (config?.trustProfiles as any)?.trustProfiles ??
     (config?.trustProfiles as Record<string, unknown> | undefined) ??
     undefined;
+  const assetScoring = (config?.assetScoring as any) ?? undefined;
 
   const baseCurriculum = await generateCurriculum(normalizedSlug);
-  const enriched = await enrichCurriculumWithResources(normalizedSlug, baseCurriculum, trustProfiles);
+  const enriched = await enrichCurriculumWithResources(
+    normalizedSlug,
+    baseCurriculum,
+    trustProfiles,
+    assetScoring,
+  );
 
   if (isSupabaseConfigured) {
     await upsertCurriculumCache(normalizedSlug, enriched, configHash);

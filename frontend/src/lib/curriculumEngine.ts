@@ -6,6 +6,7 @@ import type {
   LearningLevelDTO,
   LearningResourceDTO,
   PracticeProjectDTO,
+  AssetScoringConfig,
   SourceReferenceDTO,
   TopicDTO,
 } from "./types";
@@ -80,7 +81,7 @@ const LEARNING_RESOURCES_PROMPT_TEMPLATE = `You are an expert in curriculum desi
 
 These resources should include a mix of: official documentation, verified tutorials, YouTube videos from authoritative instructors, GitHub repos, books, and high-quality technical articles.
 
-The selection and confidence scoring of these resources should be heavily influenced by the provided trust profile, which weighs factors like authority, recency, clarity, and depth.
+The selection and confidence scoring of these resources should be heavily influenced by the provided trust profile, which weighs factors like authority, recency, clarity, and depth. Use the asset scoring model to align each resource with the correct tier and asset_type, and keep only resources that meet the tier's min_final_score threshold.
 
 The output should be a single JSON array that strictly adheres to the following structure, where each item is a LearningResourceDTO:
 
@@ -91,7 +92,11 @@ The output should be a single JSON array that strictly adheres to the following 
     "url": "string (URL of the learning resource)",
     "type": "string (Type of resource: 'Documentation', 'Video', 'Article', 'GitHub', 'Book', 'Tutorial')",
     "authority_score": "number (A score from 0.0 to 1.0 indicating its authority based on the trust profile)",
-    "short_summary": "string (AI-generated brief description of the resource)"
+    "short_summary": "string (AI-generated brief description of the resource)",
+    "tier_id": "string (one of the assetScoring tier ids)",
+    "asset_type": "string (one of the asset_types allowed for that tier)",
+    "final_score": "number (0.0-1.0 weighted score using the asset scoring model)",
+    "rationale": "string (why this resource fits the tier and passes thresholds)"
   }
 ]
 \`\`\`
@@ -99,7 +104,133 @@ The output should be a single JSON array that strictly adheres to the following 
 Here is the context:
 Language: {language}
 Subtopic: {subtopicTitle}
-Trust Profile Weights: {trustProfileData}`;
+Trust Profile Weights: {trustProfileData}
+Asset Scoring Model: {assetScoringData}
+
+Rules:
+- Only include URLs that are publicly reachable (no paywalls, no 404s, no placeholders) and that clearly match the claimed resource type.
+- Align each item to the best-fit tier and asset_type from the model.
+- Drop anything that does not meet the tier's min_final_score.
+- Prefer a diverse mix across tiers while staying within per-lesson selection ranges if possible.`;
+
+function formatAssetScoringForPrompt(assetScoring?: AssetScoringConfig | null): string {
+  if (!assetScoring?.tiers?.length) return "None";
+  const trimmedTiers = assetScoring.tiers.map((tier) => ({
+    id: tier.id,
+    label: tier.label,
+    asset_types: tier.asset_types,
+    min_final_score:
+      tier.thresholds?.min_final_score
+      ?? tier.scoring_model?.thresholds?.min_final_score,
+    selection: tier.selection_rules?.per_lesson,
+  }));
+  return JSON.stringify({ version: assetScoring.version, tiers: trimmedTiers });
+}
+
+function normalizeUrl(raw: string): string {
+  if (typeof raw !== "string") return "";
+  const trimmed = raw.trim();
+  if (!trimmed) return "";
+  if (/^https?:\/\//i.test(trimmed)) return trimmed;
+  return `https://${trimmed}`;
+}
+
+function applyAssetScoringFilters(
+  resources: LearningResourceDTO[],
+  assetScoring?: AssetScoringConfig | null,
+): LearningResourceDTO[] {
+  const normalized = resources
+    .map((res) => ({ ...res, url: normalizeUrl(res.url) }))
+    .filter((res) => res.url);
+
+  if (!assetScoring?.tiers?.length) {
+    // Basic dedupe when no scoring provided
+    const seen = new Set<string>();
+    return normalized.filter((res) => {
+      if (seen.has(res.url)) return false;
+      seen.add(res.url);
+      return true;
+    });
+  }
+
+  const tierMap = new Map(assetScoring.tiers.map((tier) => [tier.id, tier]));
+  const buckets = new Map<string, LearningResourceDTO[]>();
+  const unbucketed: LearningResourceDTO[] = [];
+
+  for (const res of normalized) {
+    let tierId = typeof res.tier_id === "string" ? res.tier_id : undefined;
+    if (!tierId && res.asset_type) {
+      const match = assetScoring.tiers.find((tier) => tier.asset_types?.includes(res.asset_type as string));
+      tierId = match?.id;
+    }
+
+    if (!tierId || !tierMap.has(tierId)) {
+      unbucketed.push(res);
+      continue;
+    }
+
+    const tier = tierMap.get(tierId)!;
+    const minScore =
+      tier.thresholds?.min_final_score
+      ?? tier.scoring_model?.thresholds?.min_final_score
+      ?? 0;
+    const score = Number.isFinite(res.final_score) ? Number(res.final_score) : Number(res.authority_score ?? 0);
+    if (score < minScore) continue;
+
+    const existing = buckets.get(tierId) ?? [];
+    existing.push({ ...res, tier_id: tierId });
+    buckets.set(tierId, existing);
+  }
+
+  const orderedTiers = [...assetScoring.tiers].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+  const finalList: LearningResourceDTO[] = [];
+  orderedTiers.forEach((tier) => {
+    const items = (buckets.get(tier.id) ?? []).sort(
+      (a, b) => (b.final_score ?? b.authority_score ?? 0) - (a.final_score ?? a.authority_score ?? 0),
+    );
+    const max = tier.selection_rules?.per_lesson?.max;
+    const selected = typeof max === "number" && max > 0 ? items.slice(0, max) : items;
+    finalList.push(...selected);
+  });
+
+  const seenUrls = new Set<string>();
+  const addUnique = (list: LearningResourceDTO[]) =>
+    list.filter((res) => {
+      if (seenUrls.has(res.url)) return false;
+      seenUrls.add(res.url);
+      return true;
+    });
+
+  return [...addUnique(finalList), ...addUnique(unbucketed)];
+}
+
+async function validateResourceLinks(resources: LearningResourceDTO[]): Promise<LearningResourceDTO[]> {
+  if (!resources.length) return resources;
+
+  try {
+    const response = await fetch("/api/url-validator", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ urls: resources.map((r) => r.url).filter(Boolean) }),
+    });
+
+    if (!response.ok) {
+      return resources;
+    }
+
+    const data = await response.json();
+    const validSet = new Set(
+      (data?.results ?? [])
+        .filter((entry: any) => entry?.ok && typeof entry?.url === "string")
+        .map((entry: any) => entry.url),
+    );
+
+    return resources.filter((res) => validSet.has(res.url));
+  } catch (error) {
+    // If validation fails (network/CORS), fall back to unvalidated list
+    return resources;
+  }
+}
 
 let curriculumConfigCache: CurriculumConfig[] | null = null;
 let curriculumConfigPromise: Promise<CurriculumConfig[]> | null = null;
@@ -220,7 +351,7 @@ export async function generateCurriculum(languageSlug: string): Promise<Curricul
     (config as any).topics ??
     config;
   const topicsJson = JSON.stringify(topicsPayload, null, 2);
-  const configHash = await computeHash(topicsJson);
+  const configHash = await getConfigHash(config);
   configHashCache.set(normalizedSlug, configHash);
   const cacheKey = `${normalizedSlug}:${configHash}:base`;
 
@@ -241,28 +372,35 @@ export async function generateLearningResources(
   language: string,
   subtopicTitle: string,
   trustProfile?: Record<string, unknown>,
+  assetScoring?: AssetScoringConfig | null,
 ): Promise<LearningResourceDTO[]> {
   const prompt = LEARNING_RESOURCES_PROMPT_TEMPLATE
     .replace("{language}", language)
     .replace("{subtopicTitle}", subtopicTitle)
-    .replace("{trustProfileData}", JSON.stringify(trustProfile ?? {}));
+    .replace("{trustProfileData}", JSON.stringify(trustProfile ?? {}))
+    .replace("{assetScoringData}", formatAssetScoringForPrompt(assetScoring));
 
   const raw = await callOpenAiChatJSON(prompt);
   const parsed = Array.isArray(raw) ? raw : Array.isArray(raw?.items) ? raw.items : [];
-  return parsed.map(normalizeLearningResource);
+  const normalized = parsed.map(normalizeLearningResource);
+  const scored = applyAssetScoringFilters(normalized, assetScoring);
+  return validateResourceLinks(scored);
 }
 
 export async function enrichCurriculumWithResources(
   languageSlug: string,
   curriculum: CurriculumDTO,
   trustProfiles?: Record<string, unknown>,
+  assetScoring?: AssetScoringConfig | null,
 ): Promise<CurriculumDTO> {
   const normalizedSlug = normalizeLanguageKey(languageSlug);
-  const config = trustProfiles ? null : await getCurriculumConfigForLanguage(normalizedSlug);
+  const config = trustProfiles || assetScoring ? null : await getCurriculumConfigForLanguage(normalizedSlug);
   const effectiveTrustProfiles = trustProfiles
     ?? (config?.trustProfiles as any)?.trustProfiles
     ?? (config?.trustProfiles as Record<string, unknown> | undefined)
     ?? {};
+  const effectiveAssetScoring: AssetScoringConfig | null =
+    assetScoring ?? (config?.assetScoring as AssetScoringConfig | null) ?? null;
 
   const configHash =
     configHashCache.get(normalizedSlug) ??
@@ -280,7 +418,12 @@ export async function enrichCurriculumWithResources(
     for (const subtopic of topic.subtopics ?? []) {
       processedSubtopics.push(await processTopic(subtopic));
     }
-    const resources = await generateLearningResources(normalizedSlug, topic.title, effectiveTrustProfiles);
+    const resources = await generateLearningResources(
+      normalizedSlug,
+      topic.title,
+      effectiveTrustProfiles,
+      effectiveAssetScoring,
+    );
     return {
       ...topic,
       subtopics: processedSubtopics,
@@ -318,10 +461,11 @@ async function computeHash(value: string): Promise<string> {
 }
 
 async function getConfigHash(config: CurriculumConfig): Promise<string> {
-  const payload =
-    (config as any).topics?.topics ??
-    (config as any).topics ??
-    config;
+  const payload = {
+    topics: (config as any).topics?.topics ?? (config as any).topics ?? config?.topics,
+    trustProfiles: config?.trustProfiles ?? null,
+    assetScoring: (config as any).assetScoring ?? null,
+  };
   return computeHash(JSON.stringify(payload));
 }
 
@@ -484,6 +628,20 @@ function normalizeLearningResource(raw: any): LearningResourceDTO {
     url: typeof raw?.url === "string" ? raw.url : "",
     type: typeof raw?.type === "string" ? raw.type : "",
     authority_score: Number(raw?.authority_score ?? raw?.authorityScore ?? 0),
+    final_score: Number(raw?.final_score ?? raw?.finalScore ?? raw?.authority_score ?? raw?.authorityScore ?? 0),
+    tier_id: typeof raw?.tier_id === "string" ? raw.tier_id : typeof raw?.tierId === "string" ? raw.tierId : undefined,
+    asset_type:
+      typeof raw?.asset_type === "string"
+        ? raw.asset_type
+        : typeof raw?.assetType === "string"
+          ? raw.assetType
+          : undefined,
+    rationale:
+      typeof raw?.rationale === "string"
+        ? raw.rationale
+        : typeof raw?.reason === "string"
+          ? raw.reason
+          : undefined,
     short_summary:
       typeof raw?.short_summary === "string"
         ? raw.short_summary

@@ -14,6 +14,10 @@ export interface LearningResourceDTO {
   type: string;
   authority_score: number;
   short_summary: string;
+  tier_id?: string;
+  asset_type?: string;
+  final_score?: number;
+  rationale?: string;
 }
 
 export interface RankedResourceDTO {
@@ -91,7 +95,49 @@ export interface CurriculumConfig {
   name: string;
   topics?: unknown;
   trustProfiles?: Record<string, unknown>;
+  assetScoring?: AssetScoringConfig | null;
   [key: string]: unknown;
+}
+
+export interface AssetScoringTier {
+  id: string;
+  label: string;
+  order: number;
+  role?: string;
+  asset_types?: string[];
+  selection_rules?: {
+    per_lesson?: {
+      min?: number;
+      max?: number;
+    };
+  };
+  scoring_model?: {
+    dimensions?: Record<
+      string,
+      {
+        description?: string;
+        inputs?: string[];
+      }
+    >;
+    weights?: Record<string, number>;
+    thresholds?: {
+      min_final_score?: number;
+    };
+  };
+  thresholds?: {
+    min_final_score?: number;
+  };
+}
+
+export interface AssetScoringConfig {
+  version?: string;
+  description?: string;
+  tiers?: AssetScoringTier[];
+  global_scoring?: {
+    normalization?: string;
+    final_score_formula?: string;
+    tie_breakers?: string[];
+  };
 }
 
 export type GeneratedAssetType =

@@ -1,6 +1,7 @@
 import { useParams, Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { getCurriculum } from "@/lib/api";
+import { getCurriculumConfigForLanguage } from "@/lib/curriculumEngine";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { ArrowLeft } from "lucide-react";
@@ -16,6 +17,14 @@ export function LanguageCurriculumPage() {
     queryKey: ["curriculum", slug],
     queryFn: () => getCurriculum(slug!),
     enabled: !!slug,
+  });
+
+  const { data: config } = useQuery({
+    queryKey: ["curriculum-config", slug],
+    queryFn: () => getCurriculumConfigForLanguage(slug!),
+    enabled: !!slug,
+    staleTime: Infinity,
+    refetchOnWindowFocus: false,
   });
 
   if (curriculumError) {
@@ -55,7 +64,9 @@ export function LanguageCurriculumPage() {
           {/* Removed dedicated Canonical Sources section */}
           <Separator className="my-6" />
 
-          {curriculum && <CurriculumBreakdown curriculum={curriculum} />}
+          {curriculum && (
+            <CurriculumBreakdown curriculum={curriculum} assetScoring={config?.assetScoring ?? null} />
+          )}
         </>
       )}
     </div>

@@ -1,5 +1,13 @@
-import { useState } from "react";
-import { CurriculumDTO, LearningLevelDTO, TopicDTO, LearningResourceDTO, GeneratedAssetDTO } from "@/lib/types";
+import { useEffect, useState } from "react";
+import {
+  AssetScoringConfig,
+  AssetScoringTier,
+  CurriculumDTO,
+  LearningLevelDTO,
+  TopicDTO,
+  LearningResourceDTO,
+  GeneratedAssetDTO,
+} from "@/lib/types";
 import { getGeneratedAssetForTopic } from "@/lib/api";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Badge } from "@/components/ui/badge";
@@ -65,29 +73,45 @@ const formatHours = (hours: number): string => {
 };
 
 // Helper function to render learning resources
-const renderLearningResources = (resources: LearningResourceDTO[]) => (
+const renderLearningResources = (
+  resources: LearningResourceDTO[],
+  tierMap?: Map<string, AssetScoringTier>,
+) => (
   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-4">
-    {resources.map((resource, index) => (
-      <Card key={index}>
-        <CardHeader>
-          <CardTitle className="text-md">{resource.title}</CardTitle>
-          <CardDescription className="flex items-center text-sm">
-            <span className={`px-2 py-0.5 rounded-full ${getResourceTypeColorClass(resource.type)} mr-2`}>
-              {resource.type}
-            </span>
-            | Authority: {(resource.authority_score * 100).toFixed(0)}%
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <p className="text-xs text-muted-foreground mb-3">{resource.short_summary}</p>
-          <a href={resource.url} target="_blank" rel="noopener noreferrer">
-            <Button variant="outline" className="w-full">
-              {getIconForResourceType(resource.type)} View Resource <ExternalLink className="ml-2 h-3 w-3" />
-            </Button>
-          </a>
-        </CardContent>
-      </Card>
-    ))}
+    {resources.map((resource, index) => {
+      const tier = resource.tier_id ? tierMap?.get(resource.tier_id) : undefined;
+      const tierLabel = tier ? `${tier.label || tier.id}` : null;
+
+      return (
+        <Card key={index}>
+          <CardHeader>
+            <CardTitle className="text-md">{resource.title}</CardTitle>
+            <CardDescription className="flex items-center text-sm flex-wrap gap-2">
+              <span className={`px-2 py-0.5 rounded-full ${getResourceTypeColorClass(resource.type)} mr-2`}>
+                {resource.type}
+              </span>
+              {tierLabel && (
+                <Badge variant="outline" className="text-[10px] px-2 py-0.5">
+                  {tierLabel}
+                </Badge>
+              )}
+              <span className="text-xs text-muted-foreground">
+                Authority: {(resource.authority_score * 100).toFixed(0)}%
+                {typeof resource.final_score === "number" ? ` • Tier score ${(resource.final_score * 100).toFixed(0)}%` : ""}
+              </span>
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <p className="text-xs text-muted-foreground mb-3">{resource.short_summary}</p>
+            <a href={resource.url} target="_blank" rel="noopener noreferrer">
+              <Button variant="outline" className="w-full">
+                {getIconForResourceType(resource.type)} View Resource <ExternalLink className="ml-2 h-3 w-3" />
+              </Button>
+            </a>
+          </CardContent>
+        </Card>
+      );
+    })}
   </div>
 );
 
@@ -96,11 +120,15 @@ function TopicItem({
   curriculum,
   level = 0,
   languageSlug,
+  assetTierMap,
+  activeTierIds,
 }: {
   topic: TopicDTO;
   curriculum: CurriculumDTO;
   level?: number;
   languageSlug: string;
+  assetTierMap?: Map<string, AssetScoringTier> | null;
+  activeTierIds?: string[];
 }) {
   const [showSummary, setShowSummary] = useState(true);
   const [showAudio, setShowAudio] = useState(true);
@@ -120,6 +148,13 @@ function TopicItem({
     mutationFn: () => getGeneratedAssetForTopic(languageSlug, topic.id, "quiz"),
     onSuccess: () => setShowQuiz(true),
   });
+
+  const filteredResources =
+    topic.learning_resources && topic.learning_resources.length > 0
+      ? (!activeTierIds || activeTierIds.length === 0
+          ? topic.learning_resources
+          : topic.learning_resources.filter((res) => !res.tier_id || activeTierIds.includes(res.tier_id)))
+      : [];
 
   return (
     <AccordionItem value={topic.id} key={topic.id}>
@@ -197,12 +232,16 @@ function TopicItem({
             <CardContent className="space-y-3">
               <Accordion type="multiple" className="w-full space-y-2">
                 <AccordionItem value="curated">
-                  <AccordionTrigger className="text-sm font-medium">Curated resources</AccordionTrigger>
-                  <AccordionContent>
-                    {topic.learning_resources && topic.learning_resources.length > 0 ? (
-                      renderLearningResources(topic.learning_resources)
+                    <AccordionTrigger className="text-sm font-medium">Curated resources</AccordionTrigger>
+                    <AccordionContent>
+                    {filteredResources && filteredResources.length > 0 ? (
+                      renderLearningResources(filteredResources, assetTierMap ?? undefined)
                     ) : (
-                      <p className="text-xs text-muted-foreground">No curated resources available.</p>
+                      <p className="text-xs text-muted-foreground">
+                        {topic.learning_resources && topic.learning_resources.length > 0
+                          ? "No resources match the selected tiers."
+                          : "No curated resources available."}
+                      </p>
                     )}
                   </AccordionContent>
                 </AccordionItem>
@@ -446,6 +485,8 @@ function TopicItem({
                   curriculum={curriculum}
                   level={level + 1}
                   languageSlug={languageSlug}
+                  assetTierMap={assetTierMap}
+                  activeTierIds={activeTierIds}
                 />
               ))}
             </Accordion>
@@ -456,8 +497,26 @@ function TopicItem({
   );
 }
 
-export function CurriculumBreakdown({ curriculum }: { curriculum: CurriculumDTO }) {
+export function CurriculumBreakdown({
+  curriculum,
+  assetScoring,
+}: {
+  curriculum: CurriculumDTO;
+  assetScoring?: AssetScoringConfig | null;
+}) {
   const languageSlug = curriculum.language;
+  const tiers = [...(assetScoring?.tiers ?? [])].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+  const tiersKey = tiers.map((t) => t.id).join("|");
+  const [activeTierIds, setActiveTierIds] = useState<string[]>(() => tiers.map((tier) => tier.id));
+  const assetTierMap = tiers.length ? new Map<string, AssetScoringTier>(tiers.map((tier) => [tier.id, tier])) : null;
+
+  useEffect(() => {
+    setActiveTierIds(tiers.map((tier) => tier.id));
+  }, [tiersKey]);
+
+  const toggleTier = (id: string) => {
+    setActiveTierIds((prev) => (prev.includes(id) ? prev.filter((t) => t !== id) : [...prev, id]));
+  };
 
   return (
     <div className="mb-8">
@@ -466,6 +525,44 @@ export function CurriculumBreakdown({ curriculum }: { curriculum: CurriculumDTO 
         Structured path from Beginner to Expert, with estimated hours per level and key topics.
         {/* (Generated by {curriculum.model_version} at {new Date(curriculum.generated_at).toLocaleString()}) */}
       </p>
+
+      {tiers.length > 0 && (
+        <Card className="mb-6">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base">Asset filters</CardTitle>
+            <CardDescription className="text-xs">
+              Toggle asset tiers from the scoring model to control which curated resources are shown.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-wrap gap-2">
+            {tiers.map((tier) => {
+              const active = activeTierIds.includes(tier.id);
+              return (
+                <Button
+                  key={tier.id}
+                  size="sm"
+                  variant={active ? "default" : "outline"}
+                  onClick={() => toggleTier(tier.id)}
+                >
+                  {tier.label || tier.id}
+                </Button>
+              );
+            })}
+            <div className="flex gap-2 w-full pt-1">
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => setActiveTierIds(tiers.map((tier) => tier.id))}
+              >
+                Select all
+              </Button>
+              <Button size="sm" variant="ghost" onClick={() => setActiveTierIds([])}>
+                Clear
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <div className="space-y-6">
         {curriculum.overall_learning_path.map((levelData: LearningLevelDTO) => (
@@ -487,6 +584,8 @@ export function CurriculumBreakdown({ curriculum }: { curriculum: CurriculumDTO 
                     curriculum={curriculum}
                     level={0}
                     languageSlug={languageSlug}
+                    assetTierMap={assetTierMap}
+                    activeTierIds={activeTierIds}
                   />
                 ))}
               </Accordion>
