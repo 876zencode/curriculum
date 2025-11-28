@@ -17,6 +17,11 @@ export function HomePage() {
     refetchOnWindowFocus: false,
   });
 
+  const capitalizeFirst = (value: string | undefined) => {
+    if (!value) return "";
+    return value.charAt(0).toUpperCase() + value.slice(1);
+  };
+
   const languageDescriptions: { [key: string]: string } = {
     java: "The leading language for enterprise software, Android development, and large-scale systems.",
     react: "A JavaScript library for building user interfaces, maintained by Meta and a community of individual developers and companies.",
@@ -43,7 +48,7 @@ export function HomePage() {
         {languages.map((lang) => (
           <Card key={lang.slug}>
             <CardHeader>
-              <CardTitle>{lang.label || lang.slug.charAt(0).toUpperCase() + lang.slug.slice(1)}</CardTitle>
+              <CardTitle>{capitalizeFirst(lang.label) || capitalizeFirst(lang.slug)}</CardTitle>
               <CardDescription>{languageDescriptions[lang.slug.toLowerCase()] || "A popular programming language."}</CardDescription>
             </CardHeader>
             <CardContent>
@@ -58,7 +63,7 @@ export function HomePage() {
       <Separator className="my-8" />
 
       <div className="text-center text-sm text-gray-500">
-        More languages coming soon!
+        More topics coming soon!
       </div>
     </div>
   );
