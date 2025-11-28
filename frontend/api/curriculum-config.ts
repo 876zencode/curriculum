@@ -1,6 +1,6 @@
 export const config = { runtime: "edge" };
 
-const UPSTREAM_URL = "";
+const UPSTREAM_URL = "https://trustdash.replit.app/api/configurations";
 
 export default async function handler(req: Request): Promise<Response> {
   if (req.method !== "GET" && req.method !== "OPTIONS") {
@@ -14,21 +14,29 @@ export default async function handler(req: Request): Promise<Response> {
   const upstream = await fetch(UPSTREAM_URL, { method: "GET" });
   const rawBody = await upstream.text();
 
-  // Try to pass through JSON; if upstream sends HTML or other content, wrap in an error payload.
   let responseBody: string;
-  let contentType = upstream.headers.get("content-type") ?? "application/json";
-  if (contentType.includes("application/json")) {
-    responseBody = rawBody;
-  } else {
-    contentType = "application/json";
+  let contentType = "application/json";
+  let status = upstream.ok ? upstream.status : 502;
+
+  try {
+    const parsed = JSON.parse(rawBody);
+    const allowed = new Set(["java", "javascript"]);
+    const filtered =
+      Array.isArray(parsed)
+        ? parsed.filter((item) => {
+            const name = typeof item?.name === "string" ? item.name.trim().toLowerCase() : "";
+            return allowed.has(name);
+          })
+        : [];
+    responseBody = JSON.stringify(filtered);
+  } catch (error) {
     responseBody = JSON.stringify({
-      error: "Upstream response was not JSON",
-      status: upstream.status,
+      error: "Failed to parse upstream JSON",
+      status,
       snippet: rawBody.slice(0, 500),
     });
+    status = 502;
   }
-
-  const status = upstream.ok ? upstream.status : 502;
 
   return cors(
     new Response(responseBody, {

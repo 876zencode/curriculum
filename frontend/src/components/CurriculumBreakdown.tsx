@@ -45,6 +45,25 @@ const getResourceTypeColorClass = (type: string) => {
   }
 };
 
+// Calculate estimated hours recursively for topics and levels
+const getTopicHours = (topic: TopicDTO): number => {
+  const selfHours = Number(topic.estimated_hours ?? 0);
+  const subHours = (topic.subtopics ?? []).reduce((sum, sub) => sum + getTopicHours(sub), 0);
+  return selfHours + subHours;
+};
+
+const getLevelHours = (levelData: LearningLevelDTO): number => {
+  const computed = (levelData.topics ?? []).reduce((sum, topic) => sum + getTopicHours(topic), 0);
+  const provided = Number(levelData.estimated_hours ?? 0);
+  if (computed > 0) return computed;
+  return provided > 0 ? provided : 0;
+};
+
+const formatHours = (hours: number): string => {
+  if (!Number.isFinite(hours)) return "0";
+  return hours % 1 === 0 ? String(hours) : hours.toFixed(1);
+};
+
 // Helper function to render learning resources
 const renderLearningResources = (resources: LearningResourceDTO[]) => (
   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-4">
@@ -454,7 +473,9 @@ export function CurriculumBreakdown({ curriculum }: { curriculum: CurriculumDTO 
             <CardHeader>
               <CardTitle className="flex justify-between items-center">
                 <span>{levelData.level}</span>
-                <Badge className="bg-blue-500 text-white">{levelData.estimated_hours} hrs est.</Badge>
+                <Badge className="bg-blue-500 text-white">
+                  {formatHours(getLevelHours(levelData))} hrs est.
+                </Badge>
               </CardTitle>
             </CardHeader>
             <CardContent>
