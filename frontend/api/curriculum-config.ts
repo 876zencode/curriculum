@@ -1,6 +1,6 @@
 export const config = { runtime: "edge" };
 
-const UPSTREAM_URL = "https://trustdash.replit.app/api/configurations";
+const UPSTREAM_URL = "";
 
 export default async function handler(req: Request): Promise<Response> {
   if (req.method !== "GET" && req.method !== "OPTIONS") {
