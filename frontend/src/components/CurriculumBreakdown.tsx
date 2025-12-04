@@ -16,6 +16,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Progress } from "@/components/ui/progress";
 import { ExternalLink, Book, Video, FileText, Github, Globe, Eye, EyeOff } from "lucide-react"; // Added new icons
 import { useMutation } from "@tanstack/react-query";
+import { TopicQuiz } from "./TopicQuiz";
 
 // Helper function to get icon based on resource type
 const getIconForResourceType = (type: string) => {
@@ -473,6 +474,7 @@ function TopicItem({
               </Accordion>
             </CardContent>
           </Card>
+          <TopicQuiz topic={topic} subject={languageSlug} />
         </div>
 
         {topic.subtopics && topic.subtopics.length > 0 && (
