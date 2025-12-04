@@ -142,6 +142,7 @@ function normalizeLlmQuestions(raw: any): QuizQuestion[] {
 export function TopicQuiz({ topic, subject }: { topic: TopicDTO; subject?: string }) {
   const [answers, setAnswers] = useState<Record<number, string>>({});
   const [activeIndex, setActiveIndex] = useState(0);
+  const [reviewMode, setReviewMode] = useState(false);
   const subjectLabel = formatSubject(subject);
 
   const { data, isLoading, isError, isFetching } = useQuery({
@@ -276,7 +277,7 @@ export function TopicQuiz({ topic, subject }: { topic: TopicDTO; subject?: strin
                     if (activeIndex < questions.length - 1) {
                       setActiveIndex((prev) => Math.min(prev + 1, questions.length - 1));
                     } else {
-                      setActiveIndex(questions.length - 1);
+                      setReviewMode(true);
                     }
                   }}
                 >
@@ -284,6 +285,42 @@ export function TopicQuiz({ topic, subject }: { topic: TopicDTO; subject?: strin
                 </Button>
               </div>
             </div>
+
+            {reviewMode && (
+              <div className="border rounded-lg p-3 space-y-2 bg-muted/40">
+                <div className="flex items-center justify-between">
+                  <p className="text-sm font-semibold">Review answers</p>
+                  <Button size="sm" variant="ghost" onClick={() => { setReviewMode(false); setActiveIndex(0); }}>
+                    Restart
+                  </Button>
+                </div>
+                <div className="space-y-2 max-h-64 overflow-auto pr-1">
+                  {questions.map((q, idx) => {
+                    const selected = answers[idx];
+                    const isCorrect = selected && selected === q.correct_answer;
+                    return (
+                      <div key={idx} className="border rounded p-2 text-xs space-y-1">
+                        <div className="flex justify-between">
+                          <span className="font-semibold">Q{idx + 1}</span>
+                          <span className={isCorrect ? "text-green-600" : "text-red-600"}>
+                            {selected ? (isCorrect ? "Correct" : "Incorrect") : "Unanswered"}
+                          </span>
+                        </div>
+                        <p className="font-medium">{q.question}</p>
+                        {selected && (
+                          <p className="text-muted-foreground">
+                            Your answer: {selected}
+                          </p>
+                        )}
+                        <p className="text-muted-foreground">
+                          Correct answer: {q.correct_answer}
+                        </p>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
           </div>
         )}
       </CardContent>
