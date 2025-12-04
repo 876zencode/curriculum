@@ -7,6 +7,16 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Separator } from "@/components/ui/separator";
 import { ShieldCheck, Sparkles } from "lucide-react";
 
 type QuizQuestion = {
@@ -131,9 +141,10 @@ function normalizeLlmQuestions(raw: any): QuizQuestion[] {
 
 export function TopicQuiz({ topic, subject }: { topic: TopicDTO; subject?: string }) {
   const [answers, setAnswers] = useState<Record<number, string>>({});
+  const [activeIndex, setActiveIndex] = useState(0);
   const subjectLabel = formatSubject(subject);
 
-  const { data, isLoading, isError, refetch, isFetching } = useQuery({
+  const { data, isLoading, isError, isFetching } = useQuery({
     queryKey: ["topic-quiz", subject ?? "unknown", topic.id],
     queryFn: () => getGeneratedAssetForTopic(subject ?? "general", topic.id, "quiz"),
     staleTime: 1000 * 60 * 60,
@@ -148,7 +159,8 @@ export function TopicQuiz({ topic, subject }: { topic: TopicDTO; subject?: strin
   }, [data, topic, subject]);
 
   const quizTitle = `${topic.title} — ${subjectLabel ? `${subjectLabel} ` : ""}Quick Check`;
-  const progress = Math.round((Object.keys(answers).length / Math.max(questions.length, 1)) * 100);
+  const progress = Math.round(((activeIndex + 1) / Math.max(questions.length, 1)) * 100);
+  const currentQuestion = questions[activeIndex];
 
   return (
     <Card>
@@ -165,9 +177,6 @@ export function TopicQuiz({ topic, subject }: { topic: TopicDTO; subject?: strin
           </div>
           <div className="flex gap-2 items-center">
             <Badge variant="secondary">Quiz</Badge>
-            <Button size="sm" variant="outline" onClick={() => refetch()} disabled={isFetching}>
-              {isFetching ? "Refreshing..." : "Refresh"}
-            </Button>
             <Button size="sm" variant="ghost" onClick={() => setAnswers({})}>
               Reset
             </Button>
@@ -177,7 +186,9 @@ export function TopicQuiz({ topic, subject }: { topic: TopicDTO; subject?: strin
       <CardContent className="space-y-3">
         <div className="flex items-center gap-3">
           <Progress className="w-40" value={progress} />
-          <span className="text-xs text-muted-foreground">{progress}% complete</span>
+          <span className="text-xs text-muted-foreground">
+            {questions.length ? `Question ${activeIndex + 1} of ${questions.length}` : "0 questions"}
+          </span>
         </div>
 
         {(isLoading || isFetching) && (
@@ -193,70 +204,154 @@ export function TopicQuiz({ topic, subject }: { topic: TopicDTO; subject?: strin
           </p>
         )}
 
-        {questions.length === 0 && (
+        {!isLoading && !isFetching && questions.length === 0 && (
           <p className="text-xs text-muted-foreground">No quiz questions available for this topic.</p>
         )}
 
-        {questions.length > 0 && (
-          <div className="space-y-3 max-h-[32rem] overflow-auto pr-1">
-            {questions.map((q: QuizQuestion, idx: number) => {
-              const selected = answers[idx];
-              const isCorrect = selected && selected === q.correct_answer;
-              return (
-                <div
-                  key={idx}
-                  className="border rounded-lg p-3 space-y-2 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-sm"
+        {!isLoading && !isFetching && questions.length > 0 && currentQuestion && (
+          <div className="space-y-3">
+            <div className="border rounded-lg p-3 space-y-2 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-sm">
+              <div className="flex items-center gap-2">
+                <Badge variant="outline">Q{activeIndex + 1}</Badge>
+                <p className="text-sm font-medium flex-1">{currentQuestion.question}</p>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {Array.isArray(currentQuestion.choices) &&
+                  currentQuestion.choices.map((choice, cIdx) => {
+                    const selected = answers[activeIndex];
+                    const isSelected = selected === choice;
+                    return (
+                      <Button
+                        key={cIdx}
+                        variant={isSelected ? "default" : "outline"}
+                        className="justify-start text-left transition-all duration-150 whitespace-normal break-words w-full"
+                        onClick={() => setAnswers((prev) => ({ ...prev, [activeIndex]: choice }))}
+                      >
+                        {choice}
+                      </Button>
+                    );
+                  })}
+              </div>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p
+                  className={`text-xs ${
+                    answers[activeIndex]
+                      ? answers[activeIndex] === currentQuestion.correct_answer
+                        ? "text-green-600"
+                        : "text-red-600"
+                      : "text-muted-foreground"
+                  }`}
                 >
-                  <div className="flex items-center gap-2">
-                    <Badge variant="outline">Q{idx + 1}</Badge>
-                    <p className="text-sm font-medium flex-1">{q.question}</p>
-                  </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                    {Array.isArray(q.choices) &&
-                      q.choices.map((choice, cIdx) => {
-                        const isSelected = selected === choice;
-                        return (
-                          <Button
-                            key={cIdx}
-                            variant={isSelected ? "default" : "outline"}
-                            className={`justify-start text-left transition-all duration-150 whitespace-normal break-words w-full ${
-                              isSelected
-                                ? ""
-                                : ""
-                            }`}
-                            onClick={() => setAnswers((prev) => ({ ...prev, [idx]: choice }))}
-                          >
-                            {choice}
-                          </Button>
-                        );
-                      })}
-                  </div>
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <p
-                      className={`text-xs ${
-                        selected ? (isCorrect ? "text-green-600" : "text-red-600") : "text-muted-foreground"
-                      }`}
-                    >
-                      {selected
-                        ? isCorrect
-                          ? "Correct! Verified."
-                          : `Incorrect. Verified answer: ${q.correct_answer}`
-                        : "Select an option to check your answer."}
-                    </p>
-                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                      <ShieldCheck className="h-4 w-4 text-emerald-500" />
-                      <span>Fact-checked</span>
-                    </div>
-                  </div>
-                  {q.explanation && (
-                    <p className="text-xs text-muted-foreground border-t pt-2">{q.explanation}</p>
-                  )}
+                  {answers[activeIndex]
+                    ? answers[activeIndex] === currentQuestion.correct_answer
+                      ? "Correct! Verified."
+                      : `Incorrect. Verified answer: ${currentQuestion.correct_answer}`
+                    : "Select an option to check your answer."}
+                </p>
+                <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                  <ShieldCheck className="h-4 w-4 text-emerald-500" />
+                  <span>Fact-checked</span>
                 </div>
-              );
-            })}
+              </div>
+              {currentQuestion.explanation && (
+                <p className="text-xs text-muted-foreground border-t pt-2">{currentQuestion.explanation}</p>
+              )}
+            </div>
+
+            <div className="flex justify-between items-center">
+              <Button
+                variant="ghost"
+                disabled={activeIndex === 0}
+                onClick={() => setActiveIndex((prev) => Math.max(prev - 1, 0))}
+              >
+                Previous
+              </Button>
+              <div className="flex gap-2 items-center">
+                <span className="text-xs text-muted-foreground">
+                  {activeIndex + 1} / {questions.length}
+                </span>
+                <Button
+                  variant="default"
+                  onClick={() => {
+                    if (activeIndex < questions.length - 1) {
+                      setActiveIndex((prev) => Math.min(prev + 1, questions.length - 1));
+                    } else {
+                      setActiveIndex(questions.length - 1);
+                    }
+                  }}
+                >
+                  {activeIndex < questions.length - 1 ? "Next" : "Review"}
+                </Button>
+              </div>
+            </div>
           </div>
         )}
       </CardContent>
     </Card>
+  );
+}
+
+export function TopicQuizDialog({ topic, subject }: { topic: TopicDTO; subject?: string }) {
+  const [open, setOpen] = useState(false);
+  const [step, setStep] = useState<0 | 1>(0);
+
+  const next = () => setStep((prev) => (prev === 0 ? 1 : prev));
+  const back = () => setStep((prev) => (prev === 1 ? 0 : prev));
+
+  return (
+    <Dialog open={open} onOpenChange={(value) => { setOpen(value); if (!value) setStep(0); }}>
+      <DialogTrigger asChild>
+        <Button variant="secondary" className="w-full sm:w-auto">Launch interactive quiz</Button>
+      </DialogTrigger>
+      <DialogContent className="max-w-4xl">
+        <DialogHeader>
+          <DialogTitle>{topic.title} — Quiz Wizard</DialogTitle>
+          <DialogDescription>
+            Briefing then questions. Crafted for the {formatSubject(subject) || "course"} track.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-4">
+          <div className="flex items-center gap-3">
+            <Badge variant={step === 0 ? "default" : "secondary"}>Briefing</Badge>
+            <Separator className="flex-1" />
+            <Badge variant={step === 1 ? "default" : "secondary"}>Quiz</Badge>
+          </div>
+
+          {step === 0 ? (
+            <div className="space-y-3">
+              <p className="text-sm text-muted-foreground">{topic.description}</p>
+              {topic.outcomes?.length ? (
+                <div>
+                  <p className="text-xs font-semibold">Key outcomes</p>
+                  <ul className="list-disc list-inside text-xs text-muted-foreground space-y-1">
+                    {topic.outcomes.map((o, idx) => <li key={idx}>{o}</li>)}
+                  </ul>
+                </div>
+              ) : null}
+              {topic.example_exercises?.length ? (
+                <div>
+                  <p className="text-xs font-semibold">Practice ideas</p>
+                  <ul className="list-disc list-inside text-xs text-muted-foreground space-y-1">
+                    {topic.example_exercises.map((o, idx) => <li key={idx}>{o}</li>)}
+                  </ul>
+                </div>
+              ) : null}
+            </div>
+          ) : (
+            <TopicQuiz topic={topic} subject={subject} />
+          )}
+        </div>
+
+        <DialogFooter className="flex justify-between">
+          <div />
+          <div className="flex gap-2">
+            {step === 1 && <Button variant="ghost" onClick={back}>Back</Button>}
+            {step === 0 && <Button onClick={next}>Start quiz</Button>}
+            {step === 1 && <Button variant="secondary" onClick={() => setOpen(false)}>Close</Button>}
+          </div>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
