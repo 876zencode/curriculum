@@ -64,8 +64,12 @@ export function LanguageCurriculumPage() {
           {/* Removed dedicated Canonical Sources section */}
           <Separator className="my-6" />
 
-          {curriculum && (
-            <CurriculumBreakdown curriculum={curriculum} assetScoring={config?.assetScoring ?? null} />
+          {curriculum && slug && (
+            <CurriculumBreakdown
+              curriculum={curriculum}
+              assetScoring={config?.assetScoring ?? null}
+              languageSlug={slug}
+            />
           )}
         </>
       )}

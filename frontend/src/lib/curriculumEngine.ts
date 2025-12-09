@@ -313,7 +313,7 @@ export async function getCurriculumConfigHash(slug: string): Promise<string | nu
 
 export async function callOpenAiChatJSON(prompt: string): Promise<any> {
   const proxyUrl = import.meta.env.VITE_LLM_PROXY_URL || "/api/llm-proxy";
-  const model = import.meta.env.VITE_OPENAI_MODEL || "gpt-4o-mini";
+  const model = import.meta.env.VITE_OPENAI_MODEL || "gpt-5.1";
   if (!proxyUrl) {
     throw new Error("VITE_LLM_PROXY_URL is not configured.");
   }

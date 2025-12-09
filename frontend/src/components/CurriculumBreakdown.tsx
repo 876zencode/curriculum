@@ -14,9 +14,22 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { ExternalLink, Book, Video, FileText, Github, Globe, Eye, EyeOff, Sparkles } from "lucide-react";
+import {
+  ExternalLink,
+  Book,
+  Video,
+  FileText,
+  Github,
+  Globe,
+  Eye,
+  EyeOff,
+  Sparkles,
+  CheckCircle2,
+  Dumbbell,
+} from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { TopicQuizDialog } from "./TopicQuiz";
+import { normalizeLanguageKey } from "@/lib/curriculumEngine";
 
 // Helper function to get icon based on resource type
 const getIconForResourceType = (type: string) => {
@@ -147,10 +160,11 @@ function TopicItem({
   openTopics: string[];
   setOpenTopics: (ids: string[]) => void;
 }) {
+  const normalizedLanguageSlug = normalizeLanguageKey(languageSlug || "");
   const [showSummary, setShowSummary] = useState(true);
   const summaryQuery = useQuery<GeneratedAssetDTO, Error>({
-    queryKey: ["summary", languageSlug, topic.id],
-    queryFn: () => getGeneratedAssetForTopic(languageSlug, topic.id, "summary_article"),
+    queryKey: ["summary", normalizedLanguageSlug, topic.id],
+    queryFn: () => getGeneratedAssetForTopic(normalizedLanguageSlug, topic.id, "summary_article"),
     staleTime: 1000 * 60 * 60,
   });
   const isFocused = focusedTopicId === topic.id;
@@ -175,30 +189,66 @@ function TopicItem({
     <div className="space-y-4">
       <div className="space-y-2">
         <p className="text-sm text-muted-foreground">{topic.description}</p>
-        {topic.outcomes && topic.outcomes.length > 0 && (
-          <div>
-            <span className="font-medium text-xs text-muted-foreground">Outcomes: </span>
-            <div className="flex flex-wrap gap-1 mt-1">
-              {topic.outcomes.map((outcome, idx) => (
-                <Badge key={idx} variant="secondary" className="px-2 py-0.5 text-xs">
-                  {outcome}
-                </Badge>
-              ))}
-            </div>
+        {(topic.outcomes?.length || topic.example_exercises?.length) ? (
+          <div className="grid gap-3 sm:grid-cols-2">
+            {topic.outcomes && topic.outcomes.length > 0 && (
+              <div className="rounded-xl border bg-gradient-to-br from-emerald-50/60 to-emerald-100/40 p-3 dark:from-emerald-900/20 dark:to-emerald-800/10">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                    <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                      Outcomes
+                    </span>
+                  </div>
+                  <Badge variant="outline" className="px-2 py-0.5 text-[11px]">
+                    {topic.outcomes.length}
+                  </Badge>
+                </div>
+                <div className="mt-2 space-y-2">
+                  {topic.outcomes.slice(0, 3).map((outcome, idx) => (
+                    <div key={idx} className="flex items-start gap-2 rounded-md bg-white/70 px-2 py-1 text-[13px] leading-snug text-slate-700 dark:bg-emerald-950/40 dark:text-emerald-50">
+                      <span className="mt-0.5 h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                      <p className="flex-1">{outcome}</p>
+                    </div>
+                  ))}
+                  {topic.outcomes.length > 3 && (
+                    <p className="text-[11px] text-muted-foreground">
+                      +{topic.outcomes.length - 3} more outcomes
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
+            {topic.example_exercises && topic.example_exercises.length > 0 && (
+              <div className="rounded-xl border bg-gradient-to-br from-indigo-50/60 to-indigo-100/40 p-3 dark:from-indigo-900/20 dark:to-indigo-800/10">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Dumbbell className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
+                    <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                      Exercises
+                    </span>
+                  </div>
+                  <Badge variant="outline" className="px-2 py-0.5 text-[11px]">
+                    {topic.example_exercises.length}
+                  </Badge>
+                </div>
+                <div className="mt-2 space-y-2">
+                  {topic.example_exercises.slice(0, 3).map((exercise, idx) => (
+                    <div key={idx} className="flex items-start gap-2 rounded-md bg-white/70 px-2 py-1 text-[13px] leading-snug text-slate-700 dark:bg-indigo-950/40 dark:text-indigo-50">
+                      <span className="mt-0.5 h-1.5 w-1.5 rounded-full bg-indigo-500" />
+                      <p className="flex-1">{exercise}</p>
+                    </div>
+                  ))}
+                  {topic.example_exercises.length > 3 && (
+                    <p className="text-[11px] text-muted-foreground">
+                      +{topic.example_exercises.length - 3} more exercises
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
-        )}
-        {topic.example_exercises && topic.example_exercises.length > 0 && (
-          <div>
-            <span className="font-medium text-xs text-muted-foreground">Exercises: </span>
-            <div className="flex flex-wrap gap-1 mt-1">
-              {topic.example_exercises.map((exercise, idx) => (
-                <Badge key={idx} variant="outline" className="px-2 py-0.5 text-xs">
-                  {exercise}
-                </Badge>
-              ))}
-            </div>
-          </div>
-        )}
+        ) : null}
         {topic.helpful_references && topic.helpful_references.length > 0 && (
           <div>
             <span className="font-medium text-xs text-muted-foreground">References: </span>
@@ -279,44 +329,46 @@ function TopicItem({
                   {showSummary ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </Button>
               </div>
-                  {showSummary ? (
-                    <div className="text-sm max-h-72 overflow-auto space-y-2">
-                      <h4 className="font-semibold">{summaryQuery.data.content?.title}</h4>
-                      {summaryQuery.data.content?.sections?.map((section: any, idx: number) => (
-                        <div key={idx} className="space-y-1">
-                          <p className="font-medium">{section.heading}</p>
-                          {section.paragraphs?.map((p: string, pIdx: number) => (
-                            <p key={pIdx} className="text-xs text-muted-foreground">
-                              {p}
-                            </p>
-                          ))}
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-xs text-muted-foreground">Summary hidden.</p>
-                  )}
-                </div>
-                <div className="rounded-lg border bg-muted/30 p-3 space-y-3">
-                  <p className="text-sm font-semibold">Quick takeaways</p>
-                  {summaryQuery.data.content?.sections?.slice(0, 3).map((section: any, idx: number) => (
-                    <div key={idx} className="p-2 rounded border text-xs space-y-1">
-                  <p className="font-semibold">{section.heading}</p>
-                  {section.paragraphs?.[0] && <p className="text-muted-foreground">{section.paragraphs[0]}</p>}
-                </div>
-              ))}
-              {(!summaryQuery.data.content?.sections ||
-                summaryQuery.data.content.sections.length === 0) && (
-                  <p className="text-xs text-muted-foreground">
-                    Summary is ready—expand to view details.
-                  </p>
-              )}
+                {showSummary ? (
+                  <div className="text-sm max-h-72 overflow-auto space-y-2">
+                    <h4 className="font-semibold">{summaryQuery.data.content?.title}</h4>
+                    {summaryQuery.data.content?.sections?.map((section: any, idx: number) => (
+                      <div key={idx} className="space-y-1">
+                        <p className="font-medium">{section.heading}</p>
+                        {section.paragraphs?.map((p: string, pIdx: number) => (
+                          <p key={pIdx} className="text-xs text-muted-foreground">
+                            {p}
+                          </p>
+                        ))}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-xs text-muted-foreground">Summary hidden.</p>
+                )}
+              </div>
+            <div className="rounded-lg border bg-muted/30 p-3 space-y-3">
+              <p className="text-sm font-semibold">Quick takeaways</p>
+              <div className="space-y-2">
+                {summaryQuery.data.content?.sections?.slice(0, 3).map((section: any, idx: number) => (
+                  <div key={idx} className="p-2 rounded border text-xs space-y-1">
+                    <p className="font-semibold">{section.heading}</p>
+                    {section.paragraphs?.[0] && <p className="text-muted-foreground">{section.paragraphs[0]}</p>}
+                  </div>
+                ))}
+                {(!summaryQuery.data.content?.sections ||
+                  summaryQuery.data.content.sections.length === 0) && (
+                    <p className="text-xs text-muted-foreground">
+                      Summary is ready—expand to view details.
+                    </p>
+                )}
+              </div>
             </div>
           </div>
         )}
       </section>
 
-      <TopicQuizDialog topic={topic} subject={languageSlug} />
+      <TopicQuizDialog topic={topic} subject={normalizedLanguageSlug} />
     </div>
   );
 
@@ -441,11 +493,12 @@ function TopicItem({
 export function CurriculumBreakdown({
   curriculum,
   assetScoring,
+  languageSlug,
 }: {
   curriculum: CurriculumDTO;
   assetScoring?: AssetScoringConfig | null;
+  languageSlug: string;
 }) {
-  const languageSlug = curriculum.language;
   const tiers = [...(assetScoring?.tiers ?? [])].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
   const tiersKey = tiers.map((t) => t.id).join("|");
   const [activeTierIds, setActiveTierIds] = useState<string[]>(() => tiers.map((tier) => tier.id));

@@ -26,105 +26,11 @@ type QuizQuestion = {
   explanation?: string;
 };
 
-const shuffle = <T,>(arr: T[]): T[] => [...arr].sort(() => Math.random() - 0.5);
-
 const formatSubject = (value?: string) => {
   if (!value) return "";
   const normalized = value.replace(/-/g, " ");
   return normalized.charAt(0).toUpperCase() + normalized.slice(1);
 };
-
-function buildQuestionsFromTopic(topic: TopicDTO, subject?: string): QuizQuestion[] {
-  const outcomes = topic.outcomes ?? [];
-  const exercises = topic.example_exercises ?? [];
-  const references = topic.helpful_references ?? [];
-  const subjectLabel = formatSubject(subject);
-
-  const questions: QuizQuestion[] = [];
-
-  if (topic.description) {
-    const distractors = [
-      `A vague statement unrelated to ${subjectLabel || "the topic"}`,
-      "Only tooling installation steps",
-      "Historical trivia with no practical application",
-    ];
-    questions.push({
-      question: `What best describes "${topic.title}" in ${subjectLabel || "this track"}?`,
-      choices: shuffle([topic.description, ...distractors]).slice(0, 4),
-      correct_answer: topic.description,
-      explanation: "Pick the statement that matches the topic's description.",
-    });
-  }
-
-  if (outcomes.length > 0) {
-    const correct = outcomes[0];
-    const distractors = shuffle(outcomes.slice(1, 4).concat("An unrelated soft skill", "A tool install step")).slice(0, 3);
-    questions.push({
-      question: `Which outcome shows you've mastered "${topic.title}"?`,
-      choices: shuffle([correct, ...distractors]).slice(0, 4),
-      correct_answer: correct,
-      explanation: "Outcomes map directly to the skills this topic builds.",
-    });
-  }
-
-  if (subjectLabel) {
-    const correct = `It connects ${subjectLabel} fundamentals to ${topic.title} so you can advance in the path.`;
-    const distractors = shuffle([
-      `It replaces ${subjectLabel} basics with unrelated tools.`,
-      "It is only relevant for a different language.",
-      "It focuses solely on soft skills.",
-    ]);
-    questions.push({
-      question: `Why does "${topic.title}" matter for ${subjectLabel}?`,
-      choices: shuffle([correct, ...distractors]).slice(0, 4),
-      correct_answer: correct,
-      explanation: `This topic strengthens your ${subjectLabel} skills so you can progress in the curriculum.`,
-    });
-  }
-
-  if (exercises.length > 0) {
-    const correct = exercises[0];
-    const distractors = shuffle(exercises.slice(1, 4).concat("Read a press release", "Skim unrelated docs")).slice(0, 3);
-    questions.push({
-      question: `Which exercise best reinforces "${topic.title}"?`,
-      choices: shuffle([correct, ...distractors]).slice(0, 4),
-      correct_answer: correct,
-      explanation: "Exercises give hands-on practice aligned to the topic.",
-    });
-  }
-
-  if (references.length > 0) {
-    const correctRef = references[0];
-    const correctLabel = `Authoritative ${subjectLabel || ""} reference`;
-    const distractors = shuffle([
-      "Random blog post with no credibility",
-      "Outdated Q&A thread",
-      "Marketing brochure",
-    ]).slice(0, 3);
-    questions.push({
-      question: `Which source is most trustworthy for "${topic.title}" in ${subjectLabel || "this course"}?`,
-      choices: shuffle([correctLabel, ...distractors]).slice(0, 4),
-      correct_answer: correctLabel,
-      explanation: `Helpful references include authoritative sources like ${correctRef.sourceId ?? "official docs"}.`,
-    });
-  }
-
-  if (questions.length === 0) {
-    questions.push({
-      question: `What's a good next step after learning "${topic.title}" for ${subjectLabel || "this course"}?`,
-      choices: shuffle([
-        `Apply the concept in a small ${subjectLabel || "subject"} project or exercise`,
-        "Ignore practice and hope to remember later",
-        "Learn an unrelated topic first",
-        "Skip directly to advanced topics without review",
-      ]),
-      correct_answer: `Apply the concept in a small ${subjectLabel || "subject"} project or exercise`,
-      explanation: "Deliberate practice cements the learning before moving on.",
-    });
-  }
-
-  return questions;
-}
 
 function normalizeLlmQuestions(raw: any): QuizQuestion[] {
   if (!raw) return [];
@@ -154,12 +60,10 @@ export function TopicQuiz({ topic, subject }: { topic: TopicDTO; subject?: strin
 
   const questions = useMemo(() => {
     const llmQuestions = normalizeLlmQuestions(data?.content);
-    if (llmQuestions.length > 0) return llmQuestions;
-    // fallback to heuristic if LLM returns nothing
-    return buildQuestionsFromTopic(topic, subject);
-  }, [data, topic, subject]);
+    return llmQuestions;
+  }, [data]);
 
-  const quizTitle = `${topic.title} — ${subjectLabel ? `${subjectLabel} ` : ""}Quick Check`;
+  const quizTitle = `${topic.title} — ${subjectLabel ? `${subjectLabel} ` : ""}`;
   const progress = Math.round(((activeIndex + 1) / Math.max(questions.length, 1)) * 100);
   const currentQuestion = questions[activeIndex];
 
@@ -200,13 +104,13 @@ export function TopicQuiz({ topic, subject }: { topic: TopicDTO; subject?: strin
         )}
 
         {isError && (
-          <p className="text-xs text-red-600">
-            Unable to load quiz right now. Showing fallback questions if available.
+          <p className="text-xs text-amber-600">
+            Unable to generate a quiz right now.
           </p>
         )}
 
         {!isLoading && !isFetching && questions.length === 0 && (
-          <p className="text-xs text-muted-foreground">No quiz questions available for this topic.</p>
+          <p className="text-xs text-muted-foreground">No quiz available right now. Please try again later.</p>
         )}
 
         {!isLoading && !isFetching && questions.length > 0 && currentQuestion && (

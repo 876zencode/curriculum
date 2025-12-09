@@ -38,7 +38,7 @@ export function HomePage() {
           </div>
           <div className="space-y-3">
             <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight">
-              Your fastest path from fundamentals to fluency
+              Your best path from fundamentals to mastery
             </h1>
             <p className="text-base md:text-lg text-muted-foreground max-w-3xl mx-auto">
               Dive into curated, canonical curriculums with AI summaries and practice-ready resources. Pick a track and
