@@ -22,7 +22,9 @@ import { normalizeLanguageKey } from "@/lib/curriculumEngine";
 const getTopicHours = (topic: TopicDTO): number => {
   const selfHours = Number(topic.estimated_hours ?? 0);
   const subHours = (topic.subtopics ?? []).reduce((sum, sub) => sum + getTopicHours(sub), 0);
-  return selfHours + subHours;
+  if (selfHours > 0 && subHours > 0) return selfHours; // assume provided hours already account for subtopics
+  if (subHours > 0) return subHours;
+  return selfHours;
 };
 
 const getLevelHours = (levelData: LearningLevelDTO): number => {
