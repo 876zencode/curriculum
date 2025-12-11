@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import {
   AssetScoringConfig,
   AssetScoringTier,
@@ -7,6 +8,7 @@ import {
   TopicDTO,
   LearningResourceDTO,
   GeneratedAssetDTO,
+  OutcomeDTO,
 } from "@/lib/types";
 import { getGeneratedAssetForTopic } from "@/lib/api";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
@@ -86,56 +88,44 @@ const formatHours = (hours: number): string => {
   return hours % 1 === 0 ? String(hours) : hours.toFixed(1);
 };
 
-// Helper function to render learning resources
-const renderLearningResources = (
-  resources: LearningResourceDTO[],
-  tierMap?: Map<string, AssetScoringTier>,
-) => (
-  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-    {resources.map((resource, index) => {
-      const tier = resource.tier_id ? tierMap?.get(resource.tier_id) : undefined;
-      const tierLabel = tier ? `${tier.label || tier.id}` : null;
-      const authority = Number(resource.authority_score ?? 0) * 100;
+type SubtopicCard = {
+  id: string;
+  label: string;
+  preview: string;
+  order?: number;
+};
 
-      return (
-        <Card key={index} className="hover:shadow-md transition-shadow">
-          <CardHeader className="space-y-1">
-            <div className="flex items-center justify-between gap-2">
-              <CardTitle className="text-md leading-tight">{resource.title}</CardTitle>
-              <span className={`px-2 py-0.5 rounded-full text-[11px] ${getResourceTypeColorClass(resource.type)}`}>
-                {resource.type}
-              </span>
-            </div>
-            <CardDescription className="flex items-center flex-wrap gap-2 text-xs">
-              {tierLabel && (
-                <Badge variant="outline" className="text-[10px] px-2 py-0.5">
-                  {tierLabel}
-                </Badge>
-              )}
-              <div className="flex items-center gap-1">
-                <Sparkles className="h-3 w-3 text-primary" />
-                <span>Authority {authority.toFixed(0)}%</span>
-              </div>
-              {typeof resource.final_score === "number" && (
-                <span className="text-muted-foreground">Tier score {(resource.final_score * 100).toFixed(0)}%</span>
-              )}
-            </CardDescription>
-            <Progress value={Math.min(Math.max(authority, 0), 100)} className="h-1.5" />
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <p className="text-sm text-muted-foreground line-clamp-3">{resource.short_summary}</p>
-            <a href={resource.url} target="_blank" rel="noopener noreferrer">
-              <Button variant="outline" className="w-full justify-between">
-                <span className="flex items-center">{getIconForResourceType(resource.type)} View resource</span>
-                <ExternalLink className="h-4 w-4" />
-              </Button>
-            </a>
-          </CardContent>
-        </Card>
-      );
-    })}
-  </div>
-);
+const buildSubtopics = (topic: TopicDTO): SubtopicCard[] => {
+  if (topic.subtopics && topic.subtopics.length > 0) {
+    return topic.subtopics.map((sub, idx) => ({
+      id: sub.id || `${topic.id}-sub-${idx}`,
+      label: sub.title || `Subtopic ${idx + 1}`,
+      preview: sub.description || sub.title || "",
+      order: typeof sub.order === "number" ? sub.order : idx + 1,
+    }));
+  }
+
+  const outcomes = topic.outcomes ?? [];
+  return outcomes.map((outcome: any, idx: number) => {
+    const label = typeof outcome === "string" ? outcome : outcome?.title || outcome?.description || `Subtopic ${idx + 1}`;
+    const previewSource = typeof outcome === "string" ? outcome : outcome?.description || outcome?.title || label;
+    const preview = previewSource.length > 200 ? `${previewSource.slice(0, 197)}...` : previewSource;
+    return {
+      id: (typeof outcome === "object" && outcome?.id) || `${topic.id}-outcome-${idx}`,
+      label,
+      preview,
+      order: idx + 1,
+    };
+  });
+};
+
+const sortSubtopics = (subs: SubtopicCard[]) =>
+  [...subs].sort((a, b) => {
+    const aOrder = typeof a.order === "number" ? a.order : Number.POSITIVE_INFINITY;
+    const bOrder = typeof b.order === "number" ? b.order : Number.POSITIVE_INFINITY;
+    if (aOrder !== bOrder) return aOrder - bOrder;
+    return a.label.localeCompare(b.label);
+  });
 
 function TopicItem({
   topic,
@@ -178,17 +168,41 @@ function TopicItem({
   }, [isOpen, topic.id, focusedTopicId, setFocusedTopicId]);
   const [showDetails, setShowDetails] = useState(false);
 
-  const filteredResources =
-    topic.learning_resources && topic.learning_resources.length > 0
-      ? (!activeTierIds || activeTierIds.length === 0
-          ? topic.learning_resources
-          : topic.learning_resources.filter((res) => !res.tier_id || activeTierIds.includes(res.tier_id)))
-      : [];
+  const subtopics = useMemo(() => sortSubtopics(buildSubtopics(topic)), [topic]);
 
   const topicBody = (
     <div className="space-y-4">
       <div className="space-y-2">
         <p className="text-sm text-muted-foreground">{topic.description}</p>
+        {subtopics.length > 0 && (
+          <div className="rounded-xl border bg-white/70 p-3 shadow-sm dark:bg-slate-900/60">
+            <div className="flex items-center justify-between gap-2 mb-3">
+              <div className="flex items-center gap-2">
+                <Sparkles className="h-4 w-4 text-primary" />
+                <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Subtopics</span>
+              </div>
+              <span className="text-[11px] text-muted-foreground">Open a subtopic page for details</span>
+            </div>
+            <div className="grid gap-2 sm:grid-cols-2">
+              {subtopics.map((subtopic, idx) => (
+                <Link
+                  key={subtopic.id}
+                  to={`/language/${languageSlug}/topic/${topic.id}/subtopic/${subtopic.id}`}
+                  className="w-full rounded-lg border bg-gradient-to-r from-slate-50 to-slate-100 px-3 py-3 text-left transition hover:-translate-y-0.5 hover:shadow-md dark:from-slate-900 dark:to-slate-800"
+                >
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">{subtopic.label}</p>
+                    <Badge variant="outline" className="text-[10px]">
+                      Step {subtopic.order ?? idx + 1}
+                    </Badge>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1 line-clamp-3">{subtopic.preview}</p>
+                  <div className="mt-2 text-[11px] text-primary">View subtopic page →</div>
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
         {(topic.outcomes?.length || topic.example_exercises?.length) ? (
           <div className="grid gap-3 sm:grid-cols-2">
             {topic.outcomes && topic.outcomes.length > 0 && (
@@ -205,12 +219,17 @@ function TopicItem({
                   </Badge>
                 </div>
                 <div className="mt-2 space-y-2">
-                  {topic.outcomes.slice(0, 3).map((outcome, idx) => (
-                    <div key={idx} className="flex items-start gap-2 rounded-md bg-white/70 px-2 py-1 text-[13px] leading-snug text-slate-700 dark:bg-emerald-950/40 dark:text-emerald-50">
-                      <span className="mt-0.5 h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                      <p className="flex-1">{outcome}</p>
-                    </div>
-                  ))}
+                  {topic.outcomes.slice(0, 3).map((outcome: any, idx: number) => {
+                    const text = typeof outcome === "string"
+                      ? outcome
+                      : outcome?.title || outcome?.description || "";
+                    return (
+                      <div key={idx} className="flex items-start gap-2 rounded-md bg-white/70 px-2 py-1 text-[13px] leading-snug text-slate-700 dark:bg-emerald-950/40 dark:text-emerald-50">
+                        <span className="mt-0.5 h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                        <p className="flex-1">{text}</p>
+                      </div>
+                    );
+                  })}
                   {topic.outcomes.length > 3 && (
                     <p className="text-[11px] text-muted-foreground">
                       +{topic.outcomes.length - 3} more outcomes
@@ -273,22 +292,6 @@ function TopicItem({
           </div>
         )}
       </div>
-
-      <section className="space-y-3">
-        <div className="flex items-center gap-2">
-          <Sparkles className="h-4 w-4 text-primary" />
-          <h3 className="text-sm font-semibold">Curated resources</h3>
-        </div>
-        {filteredResources && filteredResources.length > 0 ? (
-          renderLearningResources(filteredResources, assetTierMap ?? undefined)
-        ) : (
-          <p className="text-xs text-muted-foreground">
-            {topic.learning_resources && topic.learning_resources.length > 0
-              ? "No resources match the selected tiers."
-              : "No curated resources available."}
-          </p>
-        )}
-      </section>
 
       <section className="space-y-3">
         <div className="flex items-center gap-2">
@@ -406,27 +409,6 @@ function TopicItem({
         ) : (
           <>
             {topicBody}
-            {topic.subtopics && topic.subtopics.length > 0 && (
-              <div className="pl-4 border-l ml-2 mt-2">
-                <Accordion type="multiple" value={openTopics} onValueChange={(val) => setOpenTopics(Array.isArray(val) ? val : [])} className="w-full">
-                  {topic.subtopics.map((subtopic) => (
-                    <TopicItem
-                      key={subtopic.id}
-                      topic={subtopic}
-                      curriculum={curriculum}
-                      level={level + 1}
-                      languageSlug={languageSlug}
-                      assetTierMap={assetTierMap}
-                      activeTierIds={activeTierIds}
-                      focusedTopicId={focusedTopicId}
-                      setFocusedTopicId={setFocusedTopicId}
-                      openTopics={openTopics}
-                      setOpenTopics={setOpenTopics}
-                    />
-                  ))}
-                </Accordion>
-              </div>
-            )}
           </>
         )}
       </AccordionContent>
@@ -456,32 +438,6 @@ function TopicItem({
             </div>
             <div className="mt-2 space-y-4">
               {topicBody}
-              {topic.subtopics && topic.subtopics.length > 0 && (
-                <div className="pl-4 border-l mt-4">
-                  <Accordion
-                    type="multiple"
-                    value={openTopics}
-                    onValueChange={(val) => setOpenTopics(Array.isArray(val) ? val : [])}
-                    className="w-full"
-                  >
-                    {topic.subtopics.map((subtopic) => (
-                      <TopicItem
-                        key={subtopic.id}
-                        topic={subtopic}
-                        curriculum={curriculum}
-                        level={level + 1}
-                        languageSlug={languageSlug}
-                        assetTierMap={assetTierMap}
-                        activeTierIds={activeTierIds}
-                        focusedTopicId={focusedTopicId}
-                        setFocusedTopicId={setFocusedTopicId}
-                        openTopics={openTopics}
-                        setOpenTopics={setOpenTopics}
-                      />
-                    ))}
-                  </Accordion>
-                </div>
-              )}
             </div>
           </div>
         </div>

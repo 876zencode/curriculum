@@ -13,6 +13,8 @@ import type {
 
 const CURRICULUM_PROMPT_TEMPLATE = `You are an expert in curriculum design and software engineering. Your task is to generate a comprehensive and structured curriculum for the given programming language or technology, based on the provided JSON data.
 
+Phase 1 (this call): generate the main topics only. Do NOT generate subtopics—set "subtopics": [] for every topic. Outcomes must be structured, because subtopics will be generated in a follow-up LLM call from these outcomes.
+
 The output should be a single JSON object that strictly adheres to the following JSON structure. All fields must be present, even if empty (e.g., empty array [] or null).
 
 \`\`\`json
@@ -31,7 +33,15 @@ The output should be a single JSON object that strictly adheres to the following
           "order": "number (recommended learning order within its level)",
           "estimated_hours": "number",
           "prerequisites": ["string (list of topic IDs that are prerequisites)"],
-          "outcomes": ["string (measurable skills gained)"],
+          "outcomes": [
+            {
+              "id": "string (unique id for the outcome)",
+              "title": "string (short, student-friendly statement of the outcome)",
+              "description": "string (1-3 sentences describing the capability)",
+              "success_criteria": "string (how to verify the learner achieved it; optional)",
+              "assessment_idea": "string (short idea for a quick check or exercise; optional)"
+            }
+          ],
           "example_exercises": ["string"],
           "helpful_references": [
             {
@@ -77,7 +87,7 @@ The output should be a single JSON object that strictly adheres to the following
 Here is the JSON data:
 {curriculumData}`;
 
-const LEARNING_RESOURCES_PROMPT_TEMPLATE = `You are an expert in curriculum design and software engineering. Your task is to generate a curated list of 5-10 high-quality, authoritative learning resources for the given subtopic.
+const LEARNING_RESOURCES_PROMPT_TEMPLATE = `You are an expert in curriculum design and software engineering. Your task is to generate a curated list of 5-10 high-quality, authoritative learning resources for the given subtopic, with full awareness of the subject → topic → subtopic hierarchy.
 
 These resources should include a mix of: official documentation, verified tutorials, YouTube videos from authoritative instructors, GitHub repos, books, and high-quality technical articles.
 
@@ -103,6 +113,7 @@ The output should be a single JSON array that strictly adheres to the following 
 
 Here is the context:
 Language: {language}
+Topic Path: {topicPath}
 Subtopic: {subtopicTitle}
 Trust Profile Weights: {trustProfileData}
 Asset Scoring Model: {assetScoringData}
@@ -111,7 +122,58 @@ Rules:
 - Only include URLs that are publicly reachable (no paywalls, no 404s, no placeholders) and that clearly match the claimed resource type.
 - Align each item to the best-fit tier and asset_type from the model.
 - Drop anything that does not meet the tier's min_final_score.
-- Prefer a diverse mix across tiers while staying within per-lesson selection ranges if possible.`;
+- Prefer a diverse mix across tiers while staying within per-lesson selection ranges if possible.
+- Select resources that clearly align to the specific subtopic, using the topic path for context to disambiguate titles that could belong to multiple areas.`;
+
+const SUBTOPIC_PROMPT_TEMPLATE = `You are an expert curriculum designer. Given a main topic and its outcomes, generate only the subtopics for that topic.
+
+Rules:
+- Derive subtopics directly from the topic's outcomes. Each outcome should be reflected as one or more concise subtopics.
+- Subtopic titles must be short (≈2–6 words), concrete, and student-friendly.
+- Descriptions should be 1–3 sentences clarifying scope and expectation.
+- Include structured outcomes for each subtopic (same shape as main outcomes).
+- Do not include resources/assets here; those are generated separately.
+- Do not include any additional levels beyond subtopics; do not include practice projects here.
+
+Return JSON with:
+{
+  "topic_id": "string",
+  "subtopics": [
+    {
+      "id": "string",
+      "title": "string",
+      "description": "string",
+      "order": "number",
+      "estimated_hours": "number",
+      "prerequisites": ["string"],
+      "outcomes": [
+        {
+          "id": "string",
+          "title": "string",
+          "description": "string",
+          "success_criteria": "string (optional)",
+          "assessment_idea": "string (optional)"
+        }
+      ],
+      "example_exercises": ["string"],
+      "helpful_references": [
+        {
+          "source_id": "string",
+          "url": "string",
+          "snippet": "string",
+          "short_evidence": "string"
+        }
+      ],
+      "explainability": ["string"],
+      "subtopics": []
+    }
+  ]
+}
+
+Context:
+Language: {language}
+Topic JSON:
+{topicData}`;
 
 function formatAssetScoringForPrompt(assetScoring?: AssetScoringConfig | null): string {
   if (!assetScoring?.tiers?.length) return "None";
@@ -363,19 +425,48 @@ export async function generateCurriculum(languageSlug: string): Promise<Curricul
 
   const prompt = CURRICULUM_PROMPT_TEMPLATE.replace("{curriculumData}", topicsJson);
   const raw = await callOpenAiChatJSON(prompt);
-  const curriculum = normalizeCurriculum(raw, normalizedSlug);
+  const baseCurriculum = normalizeCurriculum(raw, normalizedSlug);
+
+  const hydratedLevels: LearningLevelDTO[] = [];
+  for (const level of baseCurriculum.overall_learning_path ?? []) {
+    const hydratedTopics: TopicDTO[] = [];
+    for (const topic of level.topics ?? []) {
+      hydratedTopics.push(await generateSubtopicsForTopic(normalizedSlug, topic));
+    }
+    hydratedLevels.push({ ...level, topics: hydratedTopics });
+  }
+
+  const curriculum: CurriculumDTO = { ...baseCurriculum, overall_learning_path: hydratedLevels };
   persistCurriculum(cacheKey, curriculum, baseCurriculumCache);
   return curriculum;
 }
 
+export async function generateSubtopicsForTopic(
+  language: string,
+  topic: TopicDTO,
+): Promise<TopicDTO> {
+  const topicData = JSON.stringify({ language, topic }, null, 2);
+  const prompt = SUBTOPIC_PROMPT_TEMPLATE
+    .replace("{language}", language)
+    .replace("{topicData}", topicData);
+
+  const raw = await callOpenAiChatJSON(prompt);
+  const subtopicsRaw = raw?.subtopics ?? raw?.topic?.subtopics ?? raw?.items ?? [];
+  const subtopics = Array.isArray(subtopicsRaw) ? subtopicsRaw.map(normalizeTopic) : [];
+  return { ...topic, subtopics };
+}
+
 export async function generateLearningResources(
   language: string,
+  topicPath: string[],
   subtopicTitle: string,
   trustProfile?: Record<string, unknown>,
   assetScoring?: AssetScoringConfig | null,
 ): Promise<LearningResourceDTO[]> {
+  const pathStr = topicPath.filter(Boolean).join(" > ");
   const prompt = LEARNING_RESOURCES_PROMPT_TEMPLATE
     .replace("{language}", language)
+    .replace("{topicPath}", pathStr || "(none provided)")
     .replace("{subtopicTitle}", subtopicTitle)
     .replace("{trustProfileData}", JSON.stringify(trustProfile ?? {}))
     .replace("{assetScoringData}", formatAssetScoringForPrompt(assetScoring));
@@ -413,17 +504,24 @@ export async function enrichCurriculumWithResources(
     return cached;
   }
 
-  const processTopic = async (topic: TopicDTO): Promise<TopicDTO> => {
+  const processTopic = async (topic: TopicDTO, parentTitles: string[]): Promise<TopicDTO> => {
+    const topicPath = [...parentTitles, topic.title].filter(Boolean);
     const processedSubtopics: TopicDTO[] = [];
     for (const subtopic of topic.subtopics ?? []) {
-      processedSubtopics.push(await processTopic(subtopic));
+      processedSubtopics.push(await processTopic(subtopic, topicPath));
     }
-    const resources = await generateLearningResources(
-      normalizedSlug,
-      topic.title,
-      effectiveTrustProfiles,
-      effectiveAssetScoring,
-    );
+
+    const shouldGenerateForThisNode = processedSubtopics.length === 0;
+    const resources = shouldGenerateForThisNode
+      ? await generateLearningResources(
+          normalizedSlug,
+          topicPath,
+          topic.title,
+          effectiveTrustProfiles,
+          effectiveAssetScoring,
+        )
+      : [];
+
     return {
       ...topic,
       subtopics: processedSubtopics,
@@ -435,7 +533,7 @@ export async function enrichCurriculumWithResources(
   for (const level of curriculum.overall_learning_path ?? []) {
     const updatedTopics: TopicDTO[] = [];
     for (const topic of level.topics ?? []) {
-      updatedTopics.push(await processTopic(topic));
+      updatedTopics.push(await processTopic(topic, []));
     }
     updatedLevels.push({ ...level, topics: updatedTopics });
   }
