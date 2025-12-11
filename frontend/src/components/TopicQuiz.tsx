@@ -266,7 +266,10 @@ export function TopicQuizDialog({ topic, subject }: { topic: TopicDTO; subject?:
                 <div>
                   <p className="text-xs font-semibold">Key outcomes</p>
                   <ul className="list-disc list-inside text-xs text-muted-foreground space-y-1">
-                    {topic.outcomes.map((o, idx) => <li key={idx}>{o}</li>)}
+                    {topic.outcomes.map((o, idx) => {
+                      const text = typeof o === "string" ? o : o.title || o.description || "";
+                      return <li key={idx}>{text}</li>;
+                    })}
                   </ul>
                 </div>
               ) : null}

@@ -2,13 +2,10 @@ import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   AssetScoringConfig,
-  AssetScoringTier,
   CurriculumDTO,
   LearningLevelDTO,
   TopicDTO,
-  LearningResourceDTO,
   GeneratedAssetDTO,
-  OutcomeDTO,
 } from "@/lib/types";
 import { getGeneratedAssetForTopic } from "@/lib/api";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
@@ -16,58 +13,10 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import {
-  ExternalLink,
-  Book,
-  Video,
-  FileText,
-  Github,
-  Globe,
-  Eye,
-  EyeOff,
-  Sparkles,
-  CheckCircle2,
-  Dumbbell,
-} from "lucide-react";
+import { ExternalLink, Eye, EyeOff, Sparkles, CheckCircle2, Dumbbell } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { TopicQuizDialog } from "./TopicQuiz";
 import { normalizeLanguageKey } from "@/lib/curriculumEngine";
-
-// Helper function to get icon based on resource type
-const getIconForResourceType = (type: string) => {
-  switch (type.toLowerCase()) {
-    case "documentation":
-    case "article":
-    case "tutorial": // Added tutorial
-      return <FileText className="h-4 w-4 mr-2" />;
-    case "video":
-      return <Video className="h-4 w-4 mr-2" />;
-    case "github":
-      return <Github className="h-4 w-4 mr-2" />;
-    case "book":
-      return <Book className="h-4 w-4 mr-2" />;
-    default:
-      return <Globe className="h-4 w-4 mr-2" />;
-  }
-};
-
-// Helper function to get color class based on resource type
-const getResourceTypeColorClass = (type: string) => {
-  switch (type.toLowerCase()) {
-    case "video":
-      return "bg-green-500 text-white";
-    case "article":
-    case "documentation":
-    case "tutorial":
-      return "bg-blue-500 text-white";
-    case "github":
-      return "bg-purple-500 text-white";
-    case "book":
-      return "bg-yellow-500 text-black"; // Text might need to be black for yellow bg
-    default:
-      return "bg-gray-500 text-white";
-  }
-};
 
 // Calculate estimated hours recursively for topics and levels
 const getTopicHours = (topic: TopicDTO): number => {
@@ -132,8 +81,6 @@ function TopicItem({
   curriculum,
   level = 0,
   languageSlug,
-  assetTierMap,
-  activeTierIds,
   focusedTopicId,
   setFocusedTopicId,
   openTopics,
@@ -143,8 +90,6 @@ function TopicItem({
   curriculum: CurriculumDTO;
   level?: number;
   languageSlug: string;
-  assetTierMap?: Map<string, AssetScoringTier> | null;
-  activeTierIds?: string[];
   focusedTopicId?: string | null;
   setFocusedTopicId: (id: string | null) => void;
   openTopics: string[];
@@ -458,7 +403,6 @@ export function CurriculumBreakdown({
   const tiers = [...(assetScoring?.tiers ?? [])].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
   const tiersKey = tiers.map((t) => t.id).join("|");
   const [activeTierIds, setActiveTierIds] = useState<string[]>(() => tiers.map((tier) => tier.id));
-  const assetTierMap = tiers.length ? new Map<string, AssetScoringTier>(tiers.map((tier) => [tier.id, tier])) : null;
   const [focusedTopicId, setFocusedTopicId] = useState<string | null>(null);
   const [openTopics, setOpenTopics] = useState<string[]>([]);
 
@@ -551,8 +495,6 @@ export function CurriculumBreakdown({
                       curriculum={curriculum}
                       level={0}
                       languageSlug={languageSlug}
-                      assetTierMap={assetTierMap}
-                      activeTierIds={activeTierIds}
                       focusedTopicId={focusedTopicId}
                       setFocusedTopicId={setFocusedTopicId}
                       openTopics={openTopics}

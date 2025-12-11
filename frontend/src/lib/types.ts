@@ -53,6 +53,14 @@ export interface PracticeProjectDTO {
   outcomes: string[];
 }
 
+export interface OutcomeDTO {
+  id: string;
+  title: string;
+  description: string;
+  success_criteria?: string;
+  assessment_idea?: string;
+}
+
 export interface TopicDTO {
   id: string;
   title: string;
@@ -60,7 +68,7 @@ export interface TopicDTO {
   order: number;
   estimated_hours: number;
   prerequisites: string[];
-  outcomes: string[];
+  outcomes: OutcomeDTO[];
   example_exercises: string[];
   helpful_references: SourceReferenceDTO[];
   explainability: string[];

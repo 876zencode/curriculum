@@ -121,13 +121,18 @@ export function SubtopicPage() {
                 <CardTitle className="text-base">Outcomes</CardTitle>
               </CardHeader>
               <CardContent className="space-y-2">
-                {subtopic.outcomes.map((o, idx) => (
-                  <div key={idx} className="rounded-md border p-2 text-sm">
-                    <p className="font-semibold">{o.title || o.description}</p>
-                    {o.description && <p className="text-muted-foreground text-xs mt-1">{o.description}</p>}
-                    {o.success_criteria && <p className="text-[11px] mt-1 text-emerald-600">Success: {o.success_criteria}</p>}
-                  </div>
-                ))}
+                {subtopic.outcomes.map((o, idx) => {
+                  const title = typeof o === "string" ? o : o.title || o.description || "";
+                  const description = typeof o === "string" ? "" : o.description;
+                  const success = typeof o === "string" ? "" : o.success_criteria;
+                  return (
+                    <div key={idx} className="rounded-md border p-2 text-sm">
+                      <p className="font-semibold">{title}</p>
+                      {description && <p className="text-muted-foreground text-xs mt-1">{description}</p>}
+                      {success && <p className="text-[11px] mt-1 text-emerald-600">Success: {success}</p>}
+                    </div>
+                  );
+                })}
               </CardContent>
             </Card>
           ) : null}
