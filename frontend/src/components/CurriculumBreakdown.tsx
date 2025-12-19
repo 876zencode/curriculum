@@ -135,6 +135,10 @@ function TopicItem({
                 <Link
                   key={subtopic.id}
                   to={`/language/${languageSlug}/topic/${topic.id}/subtopic/${subtopic.id}`}
+                  state={{
+                    returnOpenTopics: openTopics,
+                    returnFocusedTopicId: topic.id,
+                  }}
                   className="w-full rounded-lg border bg-gradient-to-r from-slate-50 to-slate-100 px-3 py-3 text-left transition hover:-translate-y-0.5 hover:shadow-md dark:from-slate-900 dark:to-slate-800"
                 >
                   <div className="flex items-center justify-between">
@@ -397,20 +401,38 @@ export function CurriculumBreakdown({
   curriculum,
   assetScoring,
   languageSlug,
+  initialOpenTopics = [],
+  initialFocusedTopicId = null,
 }: {
   curriculum: CurriculumDTO;
   assetScoring?: AssetScoringConfig | null;
   languageSlug: string;
+  initialOpenTopics?: string[];
+  initialFocusedTopicId?: string | null;
 }) {
   const tiers = [...(assetScoring?.tiers ?? [])].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
   const tiersKey = tiers.map((t) => t.id).join("|");
   const [activeTierIds, setActiveTierIds] = useState<string[]>(() => tiers.map((tier) => tier.id));
-  const [focusedTopicId, setFocusedTopicId] = useState<string | null>(null);
-  const [openTopics, setOpenTopics] = useState<string[]>([]);
+  const initialOpenKey = useMemo(() => initialOpenTopics.join("|"), [initialOpenTopics]);
+  const [focusedTopicId, setFocusedTopicId] = useState<string | null>(initialFocusedTopicId);
+  const [openTopics, setOpenTopics] = useState<string[]>(() => {
+    const merged = [...new Set([...initialOpenTopics, ...(initialFocusedTopicId ? [initialFocusedTopicId] : [])])];
+    return merged;
+  });
 
   useEffect(() => {
     setActiveTierIds(tiers.map((tier) => tier.id));
   }, [tiersKey]);
+
+  useEffect(() => {
+    setOpenTopics((prev) => {
+      const merged = [...new Set([...initialOpenTopics, ...(initialFocusedTopicId ? [initialFocusedTopicId] : [])])];
+      const keyPrev = prev.join("|");
+      const keyMerged = merged.join("|");
+      return keyPrev === keyMerged ? prev : merged;
+    });
+    setFocusedTopicId(initialFocusedTopicId ?? null);
+  }, [initialOpenKey, initialFocusedTopicId]);
 
   useEffect(() => {
     if (focusedTopicId) {

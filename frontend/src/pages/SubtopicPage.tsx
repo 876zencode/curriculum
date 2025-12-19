@@ -1,4 +1,4 @@
-import { Link, useParams } from "react-router-dom";
+import { Link, useLocation, useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft, Sparkles, Dumbbell, ExternalLink } from "lucide-react";
 import { getCurriculum } from "@/lib/api";
@@ -44,17 +44,54 @@ function findSubtopic(curriculum: CurriculumDTO | undefined, topicId: string, su
   return null;
 }
 
-const getIconForResourceType = (type: string) => {
+const typePalette: Record<string, { badge: string; accent: string; pill: string }> = {
+  video: {
+    badge: "bg-white/20 text-white border border-white/25",
+    accent: "from-sky-500/20 to-sky-400/10",
+    pill: "bg-white/85 text-slate-900 border-white/60",
+  },
+  documentation: {
+    badge: "bg-white/20 text-white border border-white/25",
+    accent: "from-green-500/20 to-green-400/10",
+    pill: "bg-white/85 text-slate-900 border-white/60",
+  },
+  article: {
+    badge: "bg-white/20 text-white border border-white/25",
+    accent: "from-gray-500/18 to-gray-400/8",
+    pill: "bg-white/85 text-slate-900 border-white/60",
+  },
+  tutorial: {
+    badge: "bg-white/20 text-white border border-white/25",
+    accent: "from-yellow-500/20 to-yellow-400/10",
+    pill: "bg-white/85 text-slate-900 border-white/60",
+  },
+  github: {
+    badge: "bg-white/20 text-white border border-white/25",
+    accent: "from-slate-500/18 to-slate-400/10",
+    pill: "bg-white/85 text-slate-900 border-white/60",
+  },
+  book: {
+    badge: "bg-white/20 text-white border border-white/25",
+    accent: "from-orange-500/18 to-orange-400/10",
+    pill: "bg-white/85 text-slate-900 border-white/60",
+  },
+};
+
+const getTypeStyles = (type: string) => {
   const normalized = (type || "").toLowerCase();
-  if (normalized === "video") return "🎥";
-  if (normalized === "documentation" || normalized === "article" || normalized === "tutorial") return "📄";
-  if (normalized === "github") return "🐙";
-  if (normalized === "book") return "📚";
-  return "🌐";
+  return (
+    typePalette[normalized] || {
+      badge: "bg-white/20 text-white border border-white/25",
+      accent: "from-primary/15 to-primary/5",
+      pill: "bg-white/85 text-slate-900 border-white/60",
+    }
+  );
 };
 
 export function SubtopicPage() {
   const { slug, topicId = "", subtopicId = "" } = useParams<{ slug: string; topicId: string; subtopicId: string }>();
+  const location = useLocation();
+  const navState = (location.state as { returnOpenTopics?: string[]; returnFocusedTopicId?: string | null } | null) || null;
 
   const { data: curriculum, isLoading, isError } = useQuery<CurriculumDTO, Error>({
     queryKey: ["curriculum", slug],
@@ -69,7 +106,17 @@ export function SubtopicPage() {
   return (
     <div className="container mx-auto p-4 max-w-5xl space-y-4">
       <div className="flex items-center gap-2">
-        <Link to={parentTopic ? `/language/${slug}` : "/"}>
+        <Link
+          to={parentTopic ? `/language/${slug}` : "/"}
+          state={
+            parentTopic && navState
+              ? {
+                  returnOpenTopics: navState.returnOpenTopics,
+                  returnFocusedTopicId: navState.returnFocusedTopicId,
+                }
+              : undefined
+          }
+        >
           <Button variant="ghost" size="sm">
             <ArrowLeft className="mr-2 h-4 w-4" />
             {parentTopic ? "Back to curriculum" : "Home"}
@@ -97,7 +144,17 @@ export function SubtopicPage() {
             <CardDescription>We couldn&apos;t locate this subtopic in the curriculum.</CardDescription>
           </CardHeader>
           <CardContent>
-            <Link to={`/language/${slug}`}>
+            <Link
+              to={`/language/${slug}`}
+              state={
+                navState
+                  ? {
+                      returnOpenTopics: navState.returnOpenTopics,
+                      returnFocusedTopicId: navState.returnFocusedTopicId,
+                    }
+                  : undefined
+              }
+            >
               <Button variant="link">Back to curriculum</Button>
             </Link>
           </CardContent>
@@ -110,8 +167,10 @@ export function SubtopicPage() {
             <h1 className="text-3xl font-bold">{subtopic.title}</h1>
             <p className="text-muted-foreground">{subtopic.description}</p>
             <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
-              {parentTopic && <Badge variant="secondary">From: {parentTopic.title}</Badge>}
-              {subtopic.estimated_hours > 0 && <Badge>{subtopic.estimated_hours} hrs</Badge>}
+              {parentTopic && <Badge className="bg-white/15 text-white border border-white/25">From: {parentTopic.title}</Badge>}
+              {subtopic.estimated_hours > 0 && (
+                <Badge className="bg-white/15 text-white border border-white/25">{subtopic.estimated_hours} hrs</Badge>
+              )}
             </div>
           </div>
 
@@ -138,7 +197,7 @@ export function SubtopicPage() {
           ) : null}
 
           <div className="grid gap-4 md:grid-cols-3">
-            <Card className="md:col-span-2">
+            <Card className="md:col-span-2 border-primary/30 bg-card/80 backdrop-blur">
               <CardHeader>
                 <CardTitle className="text-base flex items-center gap-2">
                   <Sparkles className="h-4 w-4 text-primary" />
@@ -148,25 +207,35 @@ export function SubtopicPage() {
               </CardHeader>
               <CardContent>
                 {subtopic.learning_resources?.length ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    {subtopic.learning_resources.map((res: LearningResourceDTO, idx) => (
-                      <Card key={idx} className="border shadow-sm hover:shadow-md transition">
-                        <CardHeader className="space-y-1">
-                          <div className="flex justify-between items-center gap-2">
-                            <CardTitle className="text-sm leading-tight">{res.title}</CardTitle>
-                            <Badge variant="secondary" className="text-[11px]">
-                              {getIconForResourceType(res.type)} {res.type}
-                            </Badge>
+                  <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                    {subtopic.learning_resources.map((res: LearningResourceDTO, idx) => {
+                      const styles = getTypeStyles(res.type || "");
+                      return (
+                        <div
+                          key={idx}
+                          className={`relative overflow-hidden rounded-xl border shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg ${styles.accent} bg-gradient-to-br`}
+                        >
+                          <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-transparent via-white/60 to-transparent opacity-40" />
+                            <div className="flex flex-col gap-2 p-4">
+                              <div className="flex items-center justify-between gap-3">
+                                <CardTitle className="text-sm leading-tight">{res.title}</CardTitle>
+                                <span className={`rounded-full px-2 py-1 text-[11px] font-semibold border shadow-sm ${styles.pill}`}>
+                                  {res.type || "Resource"}
+                                </span>
+                              </div>
+                              <p className="text-xs text-muted-foreground line-clamp-3">{res.short_summary}</p>
+                              <a
+                                href={res.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center text-xs font-semibold text-primary hover:underline"
+                            >
+                              Visit resource <ExternalLink className="ml-1 h-3 w-3" />
+                            </a>
                           </div>
-                          <CardDescription className="text-xs line-clamp-2">{res.short_summary}</CardDescription>
-                        </CardHeader>
-                        <CardContent className="pt-0">
-                          <a href={res.url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center text-xs text-primary hover:underline">
-                            Open resource <ExternalLink className="ml-1 h-3 w-3" />
-                          </a>
-                        </CardContent>
-                      </Card>
-                    ))}
+                        </div>
+                      );
+                    })}
                   </div>
                 ) : (
                   <p className="text-sm text-muted-foreground">No curated resources yet for this subtopic.</p>

@@ -1,4 +1,4 @@
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useLocation } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { getCurriculum } from "@/lib/api";
 import { getCurriculumConfigForLanguage } from "@/lib/curriculumEngine";
@@ -12,6 +12,8 @@ import type { CurriculumDTO } from "@/lib/types";
 
 export function LanguageCurriculumPage() {
   const { slug } = useParams<{ slug: string }>();
+  const location = useLocation();
+  const navState = (location.state as { returnOpenTopics?: string[]; returnFocusedTopicId?: string | null } | null) || null;
 
   const { data: curriculum, isLoading: curriculumLoading, isError: curriculumError, error: curriculumErrorMsg } = useQuery<CurriculumDTO, Error>({
     queryKey: ["curriculum", slug],
@@ -69,6 +71,8 @@ export function LanguageCurriculumPage() {
               curriculum={curriculum}
               assetScoring={config?.assetScoring ?? null}
               languageSlug={slug}
+              initialOpenTopics={navState?.returnOpenTopics ?? []}
+              initialFocusedTopicId={navState?.returnFocusedTopicId ?? null}
             />
           )}
         </>

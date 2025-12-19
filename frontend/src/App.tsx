@@ -1,8 +1,9 @@
 import { BrowserRouter as Router, Routes, Route, Link } from "react-router-dom";
 import { HomePage } from "./pages/HomePage";
-import { LanguageCurriculumPage } from "./pages/LanguageCurriculumPage"; // Import new page
+import { LanguageCurriculumPage } from "./pages/LanguageCurriculumPage";
 import { CacheAdminPage } from "./pages/CacheAdminPage";
 import { SubtopicPage } from "./pages/SubtopicPage";
+import { CurriculumExportPage } from "./pages/CurriculumExportPage";
 
 function App() {
   return (
@@ -19,6 +20,7 @@ function App() {
             <Route path="/language/:slug" element={<LanguageCurriculumPage />} /> {/* New language curriculum page */}
             <Route path="/language/:slug/topic/:topicId/subtopic/:subtopicId" element={<SubtopicPage />} />
             <Route path="/cache" element={<CacheAdminPage />} />
+            <Route path="/admin/export" element={<CurriculumExportPage />} />
           </Routes>
         </main>
       </div>
