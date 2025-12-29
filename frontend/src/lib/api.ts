@@ -10,6 +10,7 @@ import {
 } from "./curriculumEngine";
 import type { CurriculumDTO, GeneratedAssetDTO, GeneratedAssetType, LanguageOption, TopicDTO } from "./types";
 import { isSupabaseConfigured, supabaseClient, supabaseDataClient } from "./supabaseClient";
+import { generateLearningAssetContent } from "./learningAssets";
 
 const curriculumPromises = new Map<string, Promise<CurriculumDTO>>();
 
@@ -102,6 +103,38 @@ async function upsertCurriculumCache(
   if (error) {
     console.warn("Failed to persist curriculum cache to Supabase", error);
   }
+}
+
+async function upsertGeneratedAssetCache(
+  normalizedSlug: string,
+  topicId: string,
+  assetType: GeneratedAssetType,
+  content: any,
+  audioUrl: string | undefined | null,
+  configHash?: string | null,
+): Promise<GeneratedAssetCacheRow | null> {
+  if (!supabaseClient) return null;
+
+  const { data, error } = await supabaseClient
+    .from("generated_assets")
+    .upsert({
+      language_slug: normalizedSlug,
+      topic_id: topicId,
+      asset_type: assetType,
+      content,
+      audio_url: audioUrl ?? null,
+      config_hash: configHash ?? null,
+      updated_at: new Date().toISOString(),
+    })
+    .select()
+    .single();
+
+  if (error) {
+    console.warn("Failed to persist generated asset cache to Supabase", error);
+    return null;
+  }
+
+  return (data as GeneratedAssetCacheRow) ?? null;
 }
 
 async function generateAndStoreCurriculum(
@@ -233,7 +266,54 @@ export async function getGeneratedAssetForTopic(
     };
   }
 
-  throw new Error("Generated asset not cached. Please refresh it from the Cache Admin page.");
+  // On-demand generation for missing assets
+  const curriculum = await getCurriculum(normalizedSlug);
+  const topic = findTopicInCurriculum(curriculum, topicId);
+  if (!topic) {
+    throw new Error(`Topic ${topicId} not found in curriculum for ${normalizedSlug}`);
+  }
+
+  const content = await generateLearningAssetContent(topic, assetType);
+  const audioUrl =
+    assetType === "audio_lesson" && typeof content?.script === "string"
+      ? await generateAudioForScript(content.script)
+      : null;
+  const now = new Date().toISOString();
+
+  if (isSupabaseConfigured && supabaseClient) {
+    const stored = await upsertGeneratedAssetCache(
+      normalizedSlug,
+      topicId,
+      assetType,
+      content,
+      audioUrl,
+      configHash,
+    );
+    if (stored) {
+      return {
+        ...stored,
+        audio_url: stored.audio_url ?? undefined,
+        created_at: stored.created_at ?? now,
+        updated_at: stored.updated_at ?? now,
+      };
+    }
+  }
+
+  return {
+    id: crypto.randomUUID?.() ?? `${Date.now()}`,
+    language_slug: normalizedSlug,
+    topic_id: topicId,
+    asset_type: assetType,
+    content,
+    audio_url: audioUrl ?? undefined,
+    created_at: now,
+    updated_at: now,
+  };
+}
+
+async function generateAudioForScript(_script: string): Promise<string | null> {
+  // Placeholder for future audio generation hook.
+  return null;
 }
 
 export async function listCachedCurricula(): Promise<CachedCurriculumMetadata[]> {
