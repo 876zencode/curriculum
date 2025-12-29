@@ -19,9 +19,9 @@ function App() {
     <Router>
       <div className="container mx-auto p-4">
         <header className="mb-6 relative space-y-3">
-          <div className="flex items-start justify-between gap-3">
-            <Link to="/">
-              <h1 className="text-3xl font-bold">Intellibus Curriculum</h1>
+          <div className="flex items-start justify-between gap-3 md:items-center md:flex-row flex-col text-center md:text-left">
+            <Link to="/" className="w-full md:w-auto">
+              <h1 className="text-3xl font-bold md:text-left text-center">Intellibus Academy Curriculum</h1>
             </Link>
             <div className="hidden md:flex items-center gap-3">
               <FeedbackWidget
@@ -32,17 +32,17 @@ function App() {
               />
               {user ? (
                 <div className="relative">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="flex items-center gap-2"
-                    onClick={() => setMenuOpen((o) => !o)}
-                  >
-                    <span className="flex h-7 w-7 items-center justify-center rounded-full bg-primary text-white text-xs">
-                      {initial}
-                    </span>
-                    <span className="hidden md:inline text-sm">{firstName || user.email}</span>
-                  </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="flex items-center gap-2 justify-center"
+                  onClick={() => setMenuOpen((o) => !o)}
+                >
+                  <span className="flex h-7 w-7 items-center justify-center rounded-full bg-primary text-white text-xs">
+                    {initial}
+                  </span>
+                  <span className="hidden md:inline text-sm">{firstName || user.email}</span>
+                </Button>
                   {menuOpen && (
                     <div className="absolute right-0 mt-2 w-44 rounded-md border bg-card shadow-lg z-10">
                       <button
@@ -74,7 +74,7 @@ function App() {
                 <Button
                   variant="outline"
                   size="sm"
-                  className="flex items-center gap-2 w-full justify-between"
+                  className="flex items-center gap-2 w-full justify-center"
                   onClick={() => setMenuOpen((o) => !o)}
                 >
                   <div className="flex items-center gap-2">
@@ -83,7 +83,6 @@ function App() {
                     </span>
                     <span className="text-sm">{firstName || user.email}</span>
                   </div>
-                  <LogOut className="h-4 w-4 text-muted-foreground" />
                 </Button>
                 {menuOpen && (
                   <div className="absolute right-0 mt-2 w-full rounded-md border bg-card shadow-lg z-10">
