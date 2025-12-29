@@ -25,7 +25,7 @@ export function FeedbackWidget({
   ctaHint,
 }: FeedbackWidgetProps) {
   const location = useLocation();
-  const { user, status, isConfigured, signInWithGoogle, signOut } = useAuth();
+  const { user, status, isConfigured, signInWithGoogle, signOut, firstName } = useAuth();
   const [open, setOpen] = useState(false);
   const [category, setCategory] = useState<FeedbackCategory>("experience");
   const [message, setMessage] = useState("");
@@ -84,7 +84,7 @@ export function FeedbackWidget({
           {triggerLabel}
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-xl">
+      <DialogContent className="max-w-xl w-[92vw] max-h-[80vh] overflow-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Sparkles className="h-4 w-4 text-primary" />
@@ -95,11 +95,13 @@ export function FeedbackWidget({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="rounded-md border bg-muted/40 px-3 py-2 text-xs flex items-center gap-2">
-          <Badge variant="secondary" className="text-[10px] uppercase tracking-wide">
+        <div className="rounded-md border bg-muted/40 px-3 py-2 text-xs flex flex-wrap items-center gap-2 break-words">
+          <Badge variant="secondary" className="text-[10px] uppercase tracking-wide flex-shrink-0">
             Context
           </Badge>
-          <span className="text-muted-foreground truncate">{context} — {location.pathname}</span>
+          <span className="text-muted-foreground text-xs break-words flex-1 min-w-0">
+            {context} — {location.pathname}
+          </span>
         </div>
 
         {ctaHint && <p className="text-xs text-muted-foreground">{ctaHint}</p>}
@@ -141,8 +143,8 @@ export function FeedbackWidget({
                 </select>
               </label>
               <label className="flex flex-col gap-1 text-sm">
-                <span className="text-muted-foreground text-xs uppercase tracking-wide">Email</span>
-                <Input value={user?.email ?? ""} disabled readOnly />
+                <span className="text-muted-foreground text-xs uppercase tracking-wide">Signed in as</span>
+                <Input value={firstName || (user?.user_metadata?.full_name as string) || (user?.email ?? "")} disabled readOnly />
               </label>
             </div>
 
@@ -161,7 +163,11 @@ export function FeedbackWidget({
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Badge variant="outline" className="text-[10px]">Google sign-in required</Badge>
-                {user?.email && <span className="text-xs text-muted-foreground truncate">{user.email}</span>}
+                {user?.email && (
+                  <span className="text-xs text-muted-foreground truncate">
+                    {firstName || user.user_metadata?.full_name || user.email}
+                  </span>
+                )}
               </div>
               <div className="flex gap-2">
                 <Button type="button" variant="ghost" size="sm" disabled={disabled} onClick={() => signOut()}>

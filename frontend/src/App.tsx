@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { LogIn, LogOut } from "lucide-react";
 
 function App() {
-  const { user, status, signInWithGoogle, signOut, isConfigured } = useAuth();
+  const { user, status, signInWithGoogle, signOut, isConfigured, firstName } = useAuth();
 
   return (
     <Router>
@@ -28,7 +28,9 @@ function App() {
             />
             {user ? (
               <div className="flex items-center gap-2 text-sm">
-                <span className="hidden md:inline text-muted-foreground">{user.email}</span>
+                <span className="hidden md:inline text-muted-foreground">
+                  {firstName || user.email}
+                </span>
                 <Button
                   variant="ghost"
                   size="sm"

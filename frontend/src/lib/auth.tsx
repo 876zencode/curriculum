@@ -7,6 +7,7 @@ type AuthState = {
   session: Session | null;
   status: "loading" | "ready";
   isConfigured: boolean;
+  firstName: string | null;
   signInWithGoogle: () => Promise<void>;
   signOut: () => Promise<void>;
 };
@@ -70,6 +71,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       session,
       status,
       isConfigured: isSupabaseConfigured && Boolean(supabaseClient),
+      firstName: deriveFirstName(user),
       signInWithGoogle,
       signOut,
     }),
@@ -85,4 +87,17 @@ export function useAuth(): AuthState {
     throw new Error("useAuth must be used within an AuthProvider");
   }
   return ctx;
+}
+
+function deriveFirstName(user: User | null): string | null {
+  if (!user) return null;
+  const meta = user.user_metadata || {};
+  const fullName: string | undefined = (meta.full_name as string) || (meta.name as string);
+  const firstFromName = fullName?.trim().split(/\s+/)?.[0];
+  if (firstFromName) return firstFromName;
+  const email = user.email;
+  if (email && email.includes("@")) {
+    return email.split("@")[0];
+  }
+  return null;
 }
