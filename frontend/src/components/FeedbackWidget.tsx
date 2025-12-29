@@ -30,6 +30,7 @@ export function FeedbackWidget({
   const [category, setCategory] = useState<FeedbackCategory>("experience");
   const [message, setMessage] = useState("");
   const [submissionNotice, setSubmissionNotice] = useState<string | null>(null);
+  const [showThanks, setShowThanks] = useState(false);
 
   const contextualMetadata = useMemo(
     () => ({
@@ -52,7 +53,11 @@ export function FeedbackWidget({
     onSuccess: () => {
       setSubmissionNotice("Thanks for the signal—we'll review it soon.");
       setMessage("");
-      setOpen(false);
+      setShowThanks(true);
+      setTimeout(() => {
+        setShowThanks(false);
+        setOpen(false);
+      }, 1400);
     },
     onError: (err: any) => {
       setSubmissionNotice(err?.message ?? "Unable to submit feedback right now.");
@@ -110,6 +115,11 @@ export function FeedbackWidget({
           <p className="text-sm text-red-500">
             Supabase is not configured, so feedback cannot be submitted right now.
           </p>
+        )}
+        {showThanks && (
+          <div className="rounded-md border bg-emerald-50 text-emerald-700 px-3 py-2 text-sm shadow-sm animate-pulse">
+            🎉 Thanks for the feedback! Keep it coming.
+          </div>
         )}
 
         {showAuthPrompt ? (

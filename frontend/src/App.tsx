@@ -7,15 +7,18 @@ import { CurriculumExportPage } from "./pages/CurriculumExportPage";
 import { FeedbackWidget } from "./components/FeedbackWidget";
 import { useAuth } from "./lib/auth";
 import { Button } from "@/components/ui/button";
-import { LogIn, LogOut } from "lucide-react";
+import { LogIn, LogOut, User as UserIcon } from "lucide-react";
+import { useState } from "react";
 
 function App() {
   const { user, status, signInWithGoogle, signOut, isConfigured, firstName } = useAuth();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const initial = (firstName || user?.email || "?").charAt(0).toUpperCase();
 
   return (
     <Router>
       <div className="container mx-auto p-4">
-        <header className="flex justify-between items-center mb-6">
+        <header className="flex justify-between items-center mb-6 relative">
           <Link to="/">
             <h1 className="text-3xl font-bold">Intellibus Curriculum</h1>
           </Link>
@@ -27,19 +30,33 @@ function App() {
               ctaHint="Tell us what feels clunky or missing anywhere in the app."
             />
             {user ? (
-              <div className="flex items-center gap-2 text-sm">
-                <span className="hidden md:inline text-muted-foreground">
-                  {firstName || user.email}
-                </span>
+              <div className="relative">
                 <Button
-                  variant="ghost"
+                  variant="outline"
                   size="sm"
-                  onClick={() => signOut()}
-                  disabled={status === "loading"}
+                  className="flex items-center gap-2"
+                  onClick={() => setMenuOpen((o) => !o)}
                 >
-                  <LogOut className="mr-1 h-4 w-4" />
-                  Sign out
+                  <span className="flex h-7 w-7 items-center justify-center rounded-full bg-primary text-white text-xs">
+                    {initial}
+                  </span>
+                  <span className="hidden md:inline text-sm">{firstName || user.email}</span>
                 </Button>
+                {menuOpen && (
+                  <div className="absolute right-0 mt-2 w-44 rounded-md border bg-card shadow-lg z-10">
+                    <button
+                      className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-muted transition"
+                      onClick={() => {
+                        setMenuOpen(false);
+                        signOut();
+                      }}
+                      disabled={status === "loading"}
+                    >
+                      <LogOut className="h-4 w-4" />
+                      Sign out
+                    </button>
+                  </div>
+                )}
               </div>
             ) : (
               <Button
