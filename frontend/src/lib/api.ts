@@ -10,7 +10,6 @@ import {
 } from "./curriculumEngine";
 import type { CurriculumDTO, GeneratedAssetDTO, GeneratedAssetType, LanguageOption, TopicDTO } from "./types";
 import { isSupabaseConfigured, supabaseClient, supabaseDataClient } from "./supabaseClient";
-import { generateLearningAssetContent } from "./learningAssets";
 
 const curriculumPromises = new Map<string, Promise<CurriculumDTO>>();
 
@@ -103,38 +102,6 @@ async function upsertCurriculumCache(
   if (error) {
     console.warn("Failed to persist curriculum cache to Supabase", error);
   }
-}
-
-async function upsertGeneratedAssetCache(
-  normalizedSlug: string,
-  topicId: string,
-  assetType: GeneratedAssetType,
-  content: any,
-  audioUrl: string | undefined | null,
-  configHash?: string | null,
-): Promise<GeneratedAssetCacheRow | null> {
-  if (!supabaseClient) return null;
-
-  const { data, error } = await supabaseClient
-    .from("generated_assets")
-    .upsert({
-      language_slug: normalizedSlug,
-      topic_id: topicId,
-      asset_type: assetType,
-      content,
-      audio_url: audioUrl ?? null,
-      config_hash: configHash ?? null,
-      updated_at: new Date().toISOString(),
-    })
-    .select()
-    .single();
-
-  if (error) {
-    console.warn("Failed to persist generated asset cache to Supabase", error);
-    return null;
-  }
-
-  return (data as GeneratedAssetCacheRow) ?? null;
 }
 
 async function generateAndStoreCurriculum(
@@ -246,13 +213,6 @@ export async function refreshCurriculum(language: string): Promise<CurriculumDTO
   promise.catch(() => curriculumPromises.delete(normalizedSlug));
 
   return promise;
-}
-
-async function generateAudioForScript(script: string): Promise<string | null> {
-  if (!script) return null;
-  // TODO: Wire this to a real TTS provider and return the hosted audio URL.
-  console.warn("Audio generation is not implemented; returning null audio_url placeholder.");
-  return null;
 }
 
 export async function getGeneratedAssetForTopic(
