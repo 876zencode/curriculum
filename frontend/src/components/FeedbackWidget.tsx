@@ -1,7 +1,7 @@
-import { FormEvent, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 import { useLocation } from "react-router-dom";
 import { useMutation } from "@tanstack/react-query";
-import { MessageSquare, ShieldCheck, Sparkles } from "lucide-react";
+import { MessageSquare, ShieldCheck, Sparkles, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
@@ -31,6 +31,11 @@ export function FeedbackWidget({
   const [message, setMessage] = useState("");
   const [submissionNotice, setSubmissionNotice] = useState<string | null>(null);
   const [showThanks, setShowThanks] = useState(false);
+  useEffect(() => {
+    if (!showThanks) return;
+    const timer = window.setTimeout(() => setShowThanks(false), 3500);
+    return () => window.clearTimeout(timer);
+  }, [showThanks]);
 
   const contextualMetadata = useMemo(
     () => ({
@@ -53,11 +58,8 @@ export function FeedbackWidget({
     onSuccess: () => {
       setSubmissionNotice("Thanks for the signal—we'll review it soon.");
       setMessage("");
+      setOpen(false);
       setShowThanks(true);
-      setTimeout(() => {
-        setShowThanks(false);
-        setOpen(false);
-      }, 1400);
     },
     onError: (err: any) => {
       setSubmissionNotice(err?.message ?? "Unable to submit feedback right now.");
@@ -197,6 +199,19 @@ export function FeedbackWidget({
           </form>
         )}
       </DialogContent>
+      <Dialog open={showThanks} onOpenChange={setShowThanks}>
+        <DialogContent className="max-w-sm w-[90vw] border-emerald-200 bg-emerald-50 shadow-xl animate-in fade-in slide-in-from-top-4">
+          <div className="flex items-center gap-3">
+            <span className="relative inline-flex h-10 w-10 items-center justify-center rounded-full bg-emerald-600 text-white">
+              <CheckCircle2 className="h-6 w-6 animate-ping-once" />
+            </span>
+            <div className="space-y-1">
+              <p className="text-base font-semibold text-emerald-800">Thanks for the feedback!</p>
+              <p className="text-sm text-emerald-700">We'll read every note. Keep the insights coming. 🎉</p>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </Dialog>
   );
 }
