@@ -1,12 +1,10 @@
 import { useParams, Link, useLocation } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { getCurriculum } from "@/lib/api";
-import { getCurriculumConfigForLanguage } from "@/lib/curriculumEngine";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { ArrowLeft } from "lucide-react";
 import { CurriculumBreakdown } from "@/components/CurriculumBreakdown";
-// Removed import for LearningMaterialsSection
 import { Skeleton } from "@/components/ui/skeleton";
 import type { CurriculumDTO } from "@/lib/types";
 import { FeedbackWidget } from "@/components/FeedbackWidget";
@@ -20,14 +18,6 @@ export function LanguageCurriculumPage() {
     queryKey: ["curriculum", slug],
     queryFn: () => getCurriculum(slug!),
     enabled: !!slug,
-  });
-
-  const { data: config } = useQuery({
-    queryKey: ["curriculum-config", slug],
-    queryFn: () => getCurriculumConfigForLanguage(slug!),
-    enabled: !!slug,
-    staleTime: Infinity,
-    refetchOnWindowFocus: false,
   });
 
   if (curriculumError) {
@@ -79,7 +69,6 @@ export function LanguageCurriculumPage() {
           {curriculum && slug && (
             <CurriculumBreakdown
               curriculum={curriculum}
-              assetScoring={config?.assetScoring ?? null}
               languageSlug={slug}
               initialOpenTopics={navState?.returnOpenTopics ?? []}
               initialFocusedTopicId={navState?.returnFocusedTopicId ?? null}
