@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { getLanguages } from "@/lib/api";
 import { Sparkles, ArrowRight, BookOpen, Layers, Shield } from "lucide-react";
+import { FeedbackWidget } from "@/components/FeedbackWidget";
 
 export function HomePage() {
   const {
@@ -109,9 +110,15 @@ export function HomePage() {
           <p className="text-sm text-muted-foreground">
             We’re adding more stacks. Tell us what you want next and we’ll prioritize it.
           </p>
-          <Button variant="outline" disabled>
-            Request a track
-          </Button>
+          <div className="flex justify-center">
+            <FeedbackWidget
+              context="Home track requests"
+              triggerLabel="Request or upvote a track"
+              size="sm"
+              metadata={{ knownLanguages: languages.map((l) => l.slug) }}
+              ctaHint="Sign in with Google and drop the stacks or frameworks you want us to add."
+            />
+          </div>
         </section>
       </div>
     </div>

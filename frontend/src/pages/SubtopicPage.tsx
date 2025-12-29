@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { FeedbackWidget } from "@/components/FeedbackWidget";
 
 type FoundSubtopic = {
   topic: TopicDTO;
@@ -263,6 +264,28 @@ export function SubtopicPage() {
                 )}
               </CardContent>
             </Card>
+          </div>
+
+          <div className="rounded-lg border bg-muted/30 p-4">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="text-sm font-semibold">How did this subtopic land?</p>
+                <p className="text-xs text-muted-foreground">
+                  Share issues, content gaps, or wins. Feedback requires a quick Google sign-in.
+                </p>
+              </div>
+              <FeedbackWidget
+                context={`Subtopic feedback: ${slug} -> ${subtopic.title}`}
+                triggerLabel="Give subtopic feedback"
+                size="sm"
+                metadata={{
+                  language: slug,
+                  topicId,
+                  subtopicId,
+                  subtopicTitle: subtopic.title,
+                }}
+              />
+            </div>
           </div>
         </div>
       )}

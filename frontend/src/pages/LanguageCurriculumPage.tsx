@@ -9,6 +9,7 @@ import { CurriculumBreakdown } from "@/components/CurriculumBreakdown";
 // Removed import for LearningMaterialsSection
 import { Skeleton } from "@/components/ui/skeleton";
 import type { CurriculumDTO } from "@/lib/types";
+import { FeedbackWidget } from "@/components/FeedbackWidget";
 
 export function LanguageCurriculumPage() {
   const { slug } = useParams<{ slug: string }>();
@@ -62,6 +63,15 @@ export function LanguageCurriculumPage() {
           <p className="text-md text-muted-foreground mb-6">
             {curriculum?.explanation || "AI-generated curriculum for " + slug}
           </p>
+          <div className="flex flex-wrap items-center gap-3 mb-2">
+            <FeedbackWidget
+              context={`Curriculum overview for ${slug}`}
+              triggerLabel="Feedback on this path"
+              size="sm"
+              metadata={{ language: slug, curriculumId: curriculum?.language }}
+              ctaHint="Drop quick feedback on the sequencing, sources, or summaries."
+            />
+          </div>
 
           {/* Removed dedicated Canonical Sources section */}
           <Separator className="my-6" />

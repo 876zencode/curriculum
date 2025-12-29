@@ -9,7 +9,7 @@ import {
   normalizeLanguageKey,
 } from "./curriculumEngine";
 import type { CurriculumDTO, GeneratedAssetDTO, GeneratedAssetType, LanguageOption, TopicDTO } from "./types";
-import { isSupabaseConfigured, supabaseClient } from "./supabaseClient";
+import { isSupabaseConfigured, supabaseClient, supabaseDataClient } from "./supabaseClient";
 import { generateLearningAssetContent } from "./learningAssets";
 
 const curriculumPromises = new Map<string, Promise<CurriculumDTO>>();
@@ -29,9 +29,9 @@ async function fetchCachedCurriculumFromSupabase(
   normalizedSlug: string,
   expectedConfigHash?: string | null,
 ): Promise<CurriculumDTO | null> {
-  if (!supabaseClient) return null;
+  if (!supabaseDataClient) return null;
 
-  const { data, error } = await supabaseClient
+  const { data, error } = await supabaseDataClient
     .from("curricula")
     .select("curriculum, config_hash")
     .eq("language_slug", normalizedSlug)
@@ -47,7 +47,9 @@ async function fetchCachedCurriculumFromSupabase(
   }
 
   if (expectedConfigHash && data.config_hash && data.config_hash !== expectedConfigHash) {
-    return null;
+    console.warn(
+      `Config hash mismatch for ${normalizedSlug}. Expected ${expectedConfigHash}, got ${data.config_hash}. Returning cached anyway.`,
+    );
   }
 
   return data.curriculum as CurriculumDTO;
@@ -59,9 +61,9 @@ async function fetchCachedGeneratedAssetFromSupabase(
   assetType: GeneratedAssetType,
   expectedConfigHash?: string | null,
 ): Promise<GeneratedAssetCacheRow | null> {
-  if (!supabaseClient) return null;
+  if (!supabaseDataClient) return null;
 
-  let query = supabaseClient
+  let query = supabaseDataClient
     .from("generated_assets")
     .select("*")
     .eq("language_slug", normalizedSlug)
@@ -190,15 +192,18 @@ export async function getLanguages(): Promise<LanguageOption[]> {
 export async function getCurriculum(language: string): Promise<CurriculumDTO> {
   const normalizedSlug = normalizeLanguageKey(language);
 
+  if (!isSupabaseConfigured) {
+    throw new Error("Supabase is not configured; cannot load curriculum.");
+  }
+
   if (!curriculumPromises.has(normalizedSlug)) {
     const promise = (async () => {
       const configHash = await getCurriculumConfigHash(normalizedSlug);
       const cached = await fetchCachedCurriculumFromSupabase(normalizedSlug, configHash);
-      if (cached) {
-        return cached;
+      if (!cached) {
+        throw new Error("Curriculum not cached. Please refresh it from the Cache Admin page.");
       }
-
-      return generateAndStoreCurriculum(normalizedSlug, configHash);
+      return cached;
     })();
 
     curriculumPromises.set(normalizedSlug, promise);
@@ -208,8 +213,7 @@ export async function getCurriculum(language: string): Promise<CurriculumDTO> {
     });
   }
 
-  const result = await curriculumPromises.get(normalizedSlug)!;
-  return result;
+  return curriculumPromises.get(normalizedSlug)!;
 }
 
 export function findTopicInCurriculum(curriculum: CurriculumDTO, topicId: string): TopicDTO | null {
@@ -269,55 +273,13 @@ export async function getGeneratedAssetForTopic(
     };
   }
 
-  const curriculum = await getCurriculum(normalizedSlug);
-  const topic = findTopicInCurriculum(curriculum, topicId);
-  if (!topic) {
-    throw new Error(`Topic ${topicId} not found in curriculum for ${normalizedSlug}`);
-  }
-
-  const content = await generateLearningAssetContent(topic, assetType);
-  const audioUrl =
-    assetType === "audio_lesson" && typeof content?.script === "string"
-      ? await generateAudioForScript(content.script)
-      : null;
-
-  const now = new Date().toISOString();
-
-  if (isSupabaseConfigured && supabaseClient) {
-    const stored = await upsertGeneratedAssetCache(
-      normalizedSlug,
-      topicId,
-      assetType,
-      content,
-      audioUrl,
-      configHash,
-    );
-    if (stored) {
-      return {
-        ...stored,
-        audio_url: stored.audio_url ?? undefined,
-        created_at: stored.created_at ?? now,
-        updated_at: stored.updated_at ?? now,
-      };
-    }
-  }
-
-  return {
-    id: crypto.randomUUID?.() ?? `${Date.now()}`,
-    language_slug: normalizedSlug,
-    topic_id: topicId,
-    asset_type: assetType,
-    content,
-    audio_url: audioUrl ?? undefined,
-    created_at: now,
-    updated_at: now,
-  };
+  throw new Error("Generated asset not cached. Please refresh it from the Cache Admin page.");
 }
 
 export async function listCachedCurricula(): Promise<CachedCurriculumMetadata[]> {
-  if (!supabaseClient) return [];
+  if (!supabaseDataClient) return [];
 
-  const { data, error } = await supabaseClient
+  const { data, error } = await supabaseDataClient
     .from("curricula")
     .select("language_slug, updated_at, config_hash")
     .order("updated_at", { ascending: false });

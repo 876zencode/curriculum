@@ -58,7 +58,7 @@ export function CacheAdminPage() {
         <div>
           <h1 className="text-3xl font-bold">Curriculum Cache</h1>
           <p className="text-sm text-muted-foreground">
-            Supabase holds the latest generated curricula. Use this page to re-run the LLM and refresh cached rows.
+            Supabase is the source of truth. Use this page to re-run the LLM and overwrite Supabase with fresh content.
           </p>
         </div>
         <Button variant="outline" onClick={() => refetchCache()} disabled={cacheLoading}>
@@ -122,14 +122,14 @@ export function CacheAdminPage() {
                   onClick={() => refetchCache()}
                   disabled={cacheLoading}
                 >
-                  Refresh status
+                Refresh status
                 </Button>
                 <Button
                   size="sm"
                   onClick={() => refreshMutation.mutate(lang.slug)}
                   disabled={!isSupabaseConfigured || isBusyFor(lang.slug)}
                 >
-                  {isBusyFor(lang.slug) ? "Refreshing…" : "Refresh cache via LLM"}
+                  {isBusyFor(lang.slug) ? "Refreshing…" : "Regenerate via LLM"}
                 </Button>
               </CardFooter>
             </Card>
