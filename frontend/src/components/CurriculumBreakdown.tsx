@@ -443,16 +443,16 @@ export function CurriculumBreakdown({
         {curriculum.overall_learning_path.map((levelData: LearningLevelDTO) => (
           <Card key={levelData.level}>
             <CardHeader>
-              <CardTitle className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
+              <CardTitle className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 items-start">
                 <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
                   <span>{levelData.level}</span>
                   {levelData.level.toLowerCase().includes("expert") && (
-                    <Badge variant="outline" className="text-[11px] border-orange-500 text-orange-600">
+                    <Badge variant="outline" className="text-[11px] border-orange-500 text-orange-600 self-start">
                       LEARNING RESOURCES IN PROGRESS
                     </Badge>
                   )}
                 </div>
-                <Badge className="bg-blue-500 text-white">
+                <Badge className="bg-blue-500 text-white self-start sm:self-auto">
                   {formatHours(getLevelHours(levelData))} hrs est.
                 </Badge>
               </CardTitle>
