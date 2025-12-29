@@ -7,7 +7,7 @@ import { CurriculumExportPage } from "./pages/CurriculumExportPage";
 import { FeedbackWidget } from "./components/FeedbackWidget";
 import { useAuth } from "./lib/auth";
 import { Button } from "@/components/ui/button";
-import { LogIn, LogOut, User as UserIcon } from "lucide-react";
+import { LogIn, LogOut } from "lucide-react";
 import { useState } from "react";
 
 function App() {
