@@ -13,7 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { ExternalLink, Eye, EyeOff, Sparkles, CheckCircle2, Dumbbell } from "lucide-react";
+import { ExternalLink, Eye, EyeOff, Sparkles, CheckCircle2, Dumbbell, PlayCircle } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { TopicQuizDialog } from "./TopicQuiz";
 import { normalizeLanguageKey } from "@/lib/curriculumEngine";
@@ -37,6 +37,45 @@ const getLevelHours = (levelData: LearningLevelDTO): number => {
 const formatHours = (hours: number): string => {
   if (!Number.isFinite(hours)) return "0";
   return hours % 1 === 0 ? String(hours) : hours.toFixed(1);
+};
+
+const isVideoResource = (resource: { type?: string; url?: string }): boolean => {
+  const type = (resource.type || "").toLowerCase();
+  const url = (resource.url || "").toLowerCase();
+  return (
+    type.includes("video") ||
+    url.includes("youtube.com") ||
+    url.includes("youtu.be") ||
+    url.includes("vimeo.com") ||
+    url.includes("loom.com")
+  );
+};
+
+const getYouTubeIdFromUrl = (url: string): string | null => {
+  try {
+    const parsed = new URL(url);
+    if (parsed.hostname.includes("youtu.be")) {
+      const id = parsed.pathname.split("/")[1];
+      return id || null;
+    }
+    if (parsed.hostname.includes("youtube.com")) {
+      const vParam = parsed.searchParams.get("v");
+      if (vParam) return vParam;
+      const pathParts = parsed.pathname.split("/").filter(Boolean);
+      if (pathParts[0] === "embed" || pathParts[0] === "shorts") {
+        return pathParts[1] || null;
+      }
+    }
+  } catch {
+    return null;
+  }
+  return null;
+};
+
+const getVideoThumbnail = (url: string): string | null => {
+  const youtubeId = getYouTubeIdFromUrl(url);
+  if (youtubeId) return `https://img.youtube.com/vi/${youtubeId}/hqdefault.jpg`;
+  return null;
 };
 
 type SubtopicCard = {
@@ -116,6 +155,19 @@ function TopicItem({
   const [showDetails, setShowDetails] = useState(false);
 
   const subtopics = useMemo(() => sortSubtopics(buildSubtopics(topic)), [topic]);
+  const videoResourcesWithThumbnails = useMemo(
+    () =>
+      (topic.learning_resources ?? [])
+        .filter((resource) => resource.url && isVideoResource(resource))
+        .map((resource) => ({
+          resource,
+          thumbnail: getVideoThumbnail(resource.url),
+        }))
+        .filter(
+          (entry): entry is { resource: typeof entry.resource; thumbnail: string } => Boolean(entry.thumbnail),
+        ),
+    [topic.learning_resources],
+  );
 
   const topicBody = (
     <div className="space-y-4">
@@ -243,6 +295,44 @@ function TopicItem({
           </div>
         )}
       </div>
+
+      {isFocused && videoResourcesWithThumbnails.length > 0 && (
+        <section className="space-y-3">
+          <div className="flex items-center gap-2">
+            <PlayCircle className="h-4 w-4 text-primary" />
+            <h3 className="text-sm font-semibold">Video Tutorial/s</h3>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {videoResourcesWithThumbnails.map(({ resource, thumbnail }, idx) => {
+              return (
+                <a
+                  key={`${resource.url}-${idx}`}
+                  href={resource.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="group overflow-hidden rounded-lg border bg-muted/30 transition hover:-translate-y-0.5 hover:shadow-md"
+                >
+                  <div className="relative">
+                    <img
+                      src={thumbnail}
+                      alt={`${resource.title} thumbnail`}
+                      className="h-32 w-full object-cover transition duration-200 group-hover:scale-[1.02]"
+                      loading="lazy"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-60" />
+                  </div>
+                  <div className="space-y-1 p-2">
+                    <p className="text-xs font-semibold line-clamp-2">{resource.title}</p>
+                    {resource.short_summary && (
+                      <p className="text-[11px] text-muted-foreground line-clamp-2">{resource.short_summary}</p>
+                    )}
+                  </div>
+                </a>
+              );
+            })}
+          </div>
+        </section>
+      )}
 
       <section className="space-y-3">
         <div className="flex items-center gap-2">
@@ -446,11 +536,6 @@ export function CurriculumBreakdown({
               <CardTitle className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 items-start">
                 <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
                   <span>{levelData.level}</span>
-                  {levelData.level.toLowerCase().includes("expert") && (
-                    <Badge variant="outline" className="text-[11px] border-orange-500 text-orange-600 self-start">
-                      LEARNING RESOURCES IN PROGRESS
-                    </Badge>
-                  )}
                 </div>
                 <Badge className="bg-blue-500 text-white self-start sm:self-auto">
                   {formatHours(getLevelHours(levelData))} hrs est.

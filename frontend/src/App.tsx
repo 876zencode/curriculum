@@ -4,6 +4,7 @@ import { LanguageCurriculumPage } from "./pages/LanguageCurriculumPage";
 import { CacheAdminPage } from "./pages/CacheAdminPage";
 import { SubtopicPage } from "./pages/SubtopicPage";
 import { CurriculumExportPage } from "./pages/CurriculumExportPage";
+import { FeedbackAdminPage } from "./pages/FeedbackAdminPage";
 import { FeedbackWidget } from "./components/FeedbackWidget";
 import { useAuth } from "./lib/auth";
 import { Button } from "@/components/ui/button";
@@ -110,6 +111,7 @@ function App() {
             <Route path="/language/:slug/topic/:topicId/subtopic/:subtopicId" element={<SubtopicPage />} />
             <Route path="/cache" element={<CacheAdminPage />} />
             <Route path="/admin/export" element={<CurriculumExportPage />} />
+            <Route path="/admin/feedback" element={<FeedbackAdminPage />} />
           </Routes>
         </main>
       </div>
