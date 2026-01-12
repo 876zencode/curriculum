@@ -25,8 +25,25 @@ export function HomePage() {
   };
 
   const languageDescriptions: { [key: string]: string } = {
-    java: "The leading language for enterprise software, Android development, and large-scale systems.",
-    react: "A JavaScript library for building user interfaces, maintained by Meta and a community of individual developers and companies.",
+    java: "A versatile, high-performance language used broadly for enterprise systems, large-scale backend services, Android applications, and robust platform-independent software across industries.",
+    javascript: "The ubiquitous language of the web and modern applications — powering interactive web interfaces, scalable backend services, cross-platform apps, and full-stack systems across browsers, servers, and cloud environments.",
+  };
+
+  const getBadgeForSlug = (slug: string) => {
+    const normalized = slug.toLowerCase();
+    if (normalized === "java") {
+      return {
+        label: "Expert reviewed",
+        className: "bg-emerald-100 text-emerald-900 border-emerald-200",
+      };
+    }
+    if (normalized === "javascript") {
+      return {
+        label: "In development",
+        className: "bg-amber-100 text-amber-900 border-amber-200",
+      };
+    }
+    return null;
   };
 
   return (
@@ -79,14 +96,18 @@ export function HomePage() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {languages.map((lang) => (
-              <Card key={lang.slug} className="hover:shadow-md transition-shadow">
+            {languages.map((lang) => {
+              const badge = getBadgeForSlug(lang.slug);
+              return (
+                <Card key={lang.slug} className="hover:shadow-md transition-shadow">
                 <CardHeader>
                   <CardTitle className="flex items-center justify-between">
                     <span>{capitalizeFirst(lang.label) || capitalizeFirst(lang.slug)}</span>
-                    <Badge variant="secondary" className="text-[11px]">
-                      Guided
-                    </Badge>
+                    {badge && (
+                      <Badge variant="secondary" className={`text-[11px] ${badge.className}`}>
+                        {badge.label}
+                      </Badge>
+                    )}
                   </CardTitle>
                   <CardDescription className="text-sm">
                     {languageDescriptions[lang.slug.toLowerCase()] || "A popular programming language."}
@@ -100,8 +121,9 @@ export function HomePage() {
                     </Button>
                   </Link>
                 </CardContent>
-              </Card>
-            ))}
+                </Card>
+              );
+            })}
           </div>
         </section>
 

@@ -344,25 +344,68 @@ export function normalizeLanguageKey(raw: string): string {
   return stripped.replace(/[^a-z0-9+]+/g, "-").replace(/^-+|-+$/g, "");
 }
 
+function getConfigIdentity(config: CurriculumConfig): string {
+  const candidate =
+    (typeof (config as any)?.language_slug === "string" && (config as any).language_slug) ||
+    (typeof (config as any)?.language === "string" && (config as any).language) ||
+    (typeof (config as any)?.subject === "string" && (config as any).subject) ||
+    (typeof (config as any)?.slug === "string" && (config as any).slug) ||
+    (typeof (config as any)?.id === "string" && (config as any).id) ||
+    (typeof config?.name === "string" && config.name) ||
+    "";
+  return candidate.trim();
+}
+
+function hashForSlug(value: string): string {
+  let hash = 0;
+  for (let i = 0; i < value.length; i += 1) {
+    hash = (hash << 5) - hash + value.charCodeAt(i);
+    hash |= 0;
+  }
+  return (hash >>> 0).toString(36).slice(0, 6);
+}
+
+function buildConfigSlugIndex(configs: CurriculumConfig[]): Map<string, CurriculumConfig> {
+  const index = new Map<string, CurriculumConfig>();
+  const seen = new Set<string>();
+
+  configs.forEach((entry) => {
+    const identity = getConfigIdentity(entry);
+    if (!identity) return;
+    const baseSlug = normalizeLanguageKey(identity);
+    if (!baseSlug) return;
+
+    let slug = baseSlug;
+    if (seen.has(slug)) {
+      slug = `${baseSlug}-${hashForSlug(identity)}`;
+      let counter = 1;
+      while (seen.has(slug)) {
+        slug = `${baseSlug}-${hashForSlug(`${identity}-${counter}`)}`;
+        counter += 1;
+      }
+    }
+
+    seen.add(slug);
+    index.set(slug, entry);
+  });
+
+  return index;
+}
+
 export async function getLanguagesFromConfig(): Promise<LanguageOption[]> {
   const configs = await fetchCurriculumConfig();
-  const seen = new Map<string, string>();
-  configs.forEach((entry) => {
-    const name = typeof entry.name === "string" ? entry.name : "";
-    const slug = normalizeLanguageKey(name);
-    if (!slug || seen.has(slug)) {
-      return;
-    }
-    seen.set(slug, name || slug);
+  const index = buildConfigSlugIndex(configs);
+  return Array.from(index.entries()).map(([slug, entry]) => {
+    const label = typeof entry?.name === "string" && entry.name.trim() ? entry.name : slug;
+    return { slug, label };
   });
-  return Array.from(seen.entries()).map(([slug, label]) => ({ slug, label }));
 }
 
 export async function getCurriculumConfigForLanguage(slug: string): Promise<CurriculumConfig | null> {
   const normalized = normalizeLanguageKey(slug);
   const configs = await fetchCurriculumConfig();
-  const match = configs.find((entry) => normalizeLanguageKey(String(entry.name ?? "")) === normalized);
-  return match ?? null;
+  const index = buildConfigSlugIndex(configs);
+  return index.get(normalized) ?? null;
 }
 
 export async function getCurriculumConfigHash(slug: string): Promise<string | null> {
@@ -463,19 +506,7 @@ export async function generateLearningResources(
   trustProfile?: Record<string, unknown>,
   assetScoring?: AssetScoringConfig | null,
 ): Promise<LearningResourceDTO[]> {
-  const pathStr = topicPath.filter(Boolean).join(" > ");
-  const prompt = LEARNING_RESOURCES_PROMPT_TEMPLATE
-    .replace("{language}", language)
-    .replace("{topicPath}", pathStr || "(none provided)")
-    .replace("{subtopicTitle}", subtopicTitle)
-    .replace("{trustProfileData}", JSON.stringify(trustProfile ?? {}))
-    .replace("{assetScoringData}", formatAssetScoringForPrompt(assetScoring));
-
-  const raw = await callOpenAiChatJSON(prompt);
-  const parsed = Array.isArray(raw) ? raw : Array.isArray(raw?.items) ? raw.items : [];
-  const normalized = parsed.map(normalizeLearningResource);
-  const scored = applyAssetScoringFilters(normalized, assetScoring);
-  return validateResourceLinks(scored);
+  return [];
 }
 
 export async function enrichCurriculumWithResources(
