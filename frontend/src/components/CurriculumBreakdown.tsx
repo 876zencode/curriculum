@@ -13,6 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
+import { Skeleton } from "@/components/ui/skeleton";
 import { ExternalLink, Eye, EyeOff, Sparkles, CheckCircle2, Dumbbell, PlayCircle } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { TopicQuizDialog } from "./TopicQuiz";
@@ -462,7 +463,7 @@ function TopicItem({
           }}
         >
           <div
-            className="w-full max-w-5xl mt-10 rounded-lg border bg-card p-4 shadow-lg max-h-[90vh] overflow-y-auto"
+            className="w-full max-w-5xl mt-10 rounded-lg border border-slate-200 bg-white p-4 text-slate-900 shadow-lg max-h-[90vh] overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex justify-end">
@@ -528,7 +529,6 @@ export function CurriculumBreakdown({
 
   return (
     <div className="mb-8">
-
       <div className="space-y-6">
         {curriculum.overall_learning_path.map((levelData: LearningLevelDTO) => (
           <Card key={levelData.level}>
@@ -567,6 +567,31 @@ export function CurriculumBreakdown({
           </Card>
         ))}
       </div>
+    </div>
+  );
+}
+
+export function CurriculumBreakdownSkeleton() {
+  return (
+    <div className="space-y-6">
+      {[0, 1, 2].map((index) => (
+        <Card key={index}>
+          <CardHeader>
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+              <Skeleton className="h-6 w-40" />
+              <Skeleton className="h-6 w-24" />
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <Skeleton className="h-4 w-5/6" />
+            <Skeleton className="h-4 w-3/4" />
+            <Skeleton className="h-4 w-2/3" />
+            <div className="pt-2">
+              <Skeleton className="h-8 w-full" />
+            </div>
+          </CardContent>
+        </Card>
+      ))}
     </div>
   );
 }

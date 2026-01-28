@@ -4,7 +4,7 @@ import { getCurriculum } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { ArrowLeft } from "lucide-react";
-import { CurriculumBreakdown } from "@/components/CurriculumBreakdown";
+import { CurriculumBreakdown, CurriculumBreakdownSkeleton } from "@/components/CurriculumBreakdown";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { CurriculumDTO } from "@/lib/types";
 import { FeedbackWidget } from "@/components/FeedbackWidget";
@@ -44,8 +44,16 @@ export function LanguageCurriculumPage() {
         <div className="space-y-4">
           <Skeleton className="h-10 w-3/4" />
           <Skeleton className="h-6 w-1/2" />
-          <Skeleton className="h-[200px] w-full" />
-          <Skeleton className="h-[300px] w-full" />
+          <div className="rounded-lg border bg-white p-4 shadow-sm">
+            <p className="text-sm font-semibold text-slate-700">Loading curriculum...</p>
+            <p className="text-xs text-muted-foreground mt-1">
+              Gathering topics, summaries, and resources.
+            </p>
+            <div className="mt-3">
+              <Skeleton className="h-2 w-1/3" />
+            </div>
+          </div>
+          <CurriculumBreakdownSkeleton />
         </div>
       ) : (
         <>
