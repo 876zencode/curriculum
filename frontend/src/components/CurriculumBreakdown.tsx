@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import { Link } from "react-router-dom";
 import {
   AssetScoringConfig,
@@ -454,36 +455,39 @@ function TopicItem({
           </>
         )}
       </AccordionContent>
-      {isFocused && (
-        <div
-          className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-start justify-center overflow-y-auto p-4"
-          onClick={() => {
-            setFocusedTopicId(null);
-            setOpenTopics(openTopics.filter((id) => id !== topic.id));
-          }}
-        >
-          <div
-            className="w-full max-w-5xl mt-10 rounded-lg border border-slate-200 bg-white p-4 text-slate-900 shadow-lg max-h-[90vh] overflow-y-auto"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex justify-end">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => {
-                  setFocusedTopicId(null);
-                  setOpenTopics(openTopics.filter((id) => id !== topic.id));
-                }}
+      {isFocused && typeof document !== "undefined"
+        ? createPortal(
+            <div
+              className="fixed inset-0 z-50 grid place-items-center bg-background/80 backdrop-blur-sm p-4"
+              onClick={() => {
+                setFocusedTopicId(null);
+                setOpenTopics(openTopics.filter((id) => id !== topic.id));
+              }}
+            >
+              <div
+                className="w-full max-w-5xl rounded-lg border border-slate-200 bg-white p-4 text-slate-900 shadow-lg max-h-[90vh] overflow-y-auto"
+                onClick={(e) => e.stopPropagation()}
               >
-                Close
-              </Button>
-            </div>
-            <div className="mt-2 space-y-4">
-              {topicBody}
-            </div>
-          </div>
-        </div>
-      )}
+                <div className="flex justify-end">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setFocusedTopicId(null);
+                      setOpenTopics(openTopics.filter((id) => id !== topic.id));
+                    }}
+                  >
+                    Close
+                  </Button>
+                </div>
+                <div className="mt-2 space-y-4">
+                  {topicBody}
+                </div>
+              </div>
+            </div>,
+            document.body,
+          )
+        : null}
     </AccordionItem>
   );
 }
